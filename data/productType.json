@@ -1,0 +1,162 @@
+{
+  "categories": [
+    {
+      "id": 1,
+      "name": "女装类",
+      "keywords": ["女装", "女士", "女款", "女式"],
+      "description": "女性服装及相关产品"
+    },
+    {
+      "id": 2,
+      "name": "男装类",
+      "keywords": ["男装", "男士", "男款", "男式"],
+      "description": "男性服装及相关产品"
+    },
+    {
+      "id": 3,
+      "name": "运动户外类",
+      "keywords": ["运动", "健身", "户外", "登山", "跑步"],
+      "description": "运动健身和户外用品"
+    },
+    {
+      "id": 4,
+      "name": "数码产品类",
+      "keywords": ["手机", "iPhone", "iPad", "电脑", "笔记本"],
+      "description": "数码电子产品和通讯设备"
+    },
+    {
+      "id": 5,
+      "name": "童装类",
+      "keywords": ["童装", "儿童", "宝宝", "婴儿"],
+      "description": "儿童服装和婴儿用品"
+    },
+    {
+      "id": 6,
+      "name": "图书类",
+      "keywords": ["图书", "书籍", "小说", "名著", "教材", "教辅"],
+      "description": "图书、教材和教辅资料"
+    },
+    {
+      "id": 7,
+      "name": "汽车用品类",
+      "keywords": ["汽车", "汽车用品", "汽车配件", "轮胎"],
+      "description": "汽车相关用品和配件"
+    },
+    {
+      "id": 8,
+      "name": "家居家具类",
+      "keywords": ["家居", "家具", "沙发", "床", "桌子"],
+      "description": "家居用品和家具"
+    },
+    {
+      "id": 9,
+      "name": "文具办公类",
+      "keywords": ["文具", "办公用品", "打印机", "笔", "本子"],
+      "description": "文具用品和办公设备"
+    },
+    {
+      "id": 10,
+      "name": "牛仔裤类",
+      "keywords": ["牛仔裤", "牛仔"],
+      "description": "牛仔裤和牛仔服饰"
+    },
+    {
+      "id": 11,
+      "name": "玩具游戏类",
+      "keywords": ["玩具", "游戏", "模型", "拼图"],
+      "description": "玩具、游戏和模型"
+    },
+    {
+      "id": 12,
+      "name": "内衣类",
+      "keywords": ["内衣", "文胸", "内裤", "睡衣"],
+      "description": "内衣和睡衣"
+    },
+    {
+      "id": 13,
+      "name": "鞋子类",
+      "keywords": ["鞋子", "运动鞋", "皮鞋", "高跟鞋"],
+      "description": "各种类型的鞋子"
+    },
+    {
+      "id": 14,
+      "name": "珠宝首饰类",
+      "keywords": ["珠宝", "首饰", "项链", "戒指", "耳环"],
+      "description": "珠宝首饰和配饰"
+    },
+    {
+      "id": 15,
+      "name": "家电类",
+      "keywords": ["家电", "电视", "冰箱", "洗衣机", "空调"],
+      "description": "家用电器"
+    },
+    {
+      "id": 16,
+      "name": "包包类",
+      "keywords": ["包包", "手提包", "单肩包", "双肩包"],
+      "description": "各种类型的包包"
+    },
+    {
+      "id": 17,
+      "name": "数码配件类",
+      "keywords": ["相机", "摄像机", "耳机", "音响"],
+      "description": "数码配件和影音设备"
+    },
+    {
+      "id": 18,
+      "name": "食品饮料类",
+      "keywords": ["食品", "零食", "饮料", "酒类", "茶叶"],
+      "description": "食品、饮料和茶叶"
+    },
+    {
+      "id": 19,
+      "name": "厨具餐具类",
+      "keywords": ["厨具", "餐具", "锅", "碗", "盘子"],
+      "description": "厨房用具和餐具"
+    },
+    {
+      "id": 20,
+      "name": "手表类",
+      "keywords": ["手表", "腕表", "机械表", "石英表"],
+      "description": "各种类型的手表"
+    },
+    {
+      "id": 21,
+      "name": "宠物用品类",
+      "keywords": ["宠物", "宠物用品", "狗粮", "猫粮"],
+      "description": "宠物用品和宠物食品"
+    },
+    {
+      "id": 22,
+      "name": "围巾配饰类",
+      "keywords": ["围巾", "丝巾", "披肩"],
+      "description": "围巾、丝巾和披肩"
+    },
+    {
+      "id": 23,
+      "name": "化妆品类",
+      "keywords": ["化妆品", "护肤品", "美妆", "彩妆"],
+      "description": "化妆品和护肤品"
+    },
+    {
+      "id": 24,
+      "name": "孕妇装类",
+      "keywords": ["孕妇装"],
+      "description": "孕妇服装"
+    },
+    {
+      "id": 25,
+      "name": "打火机类",
+      "keywords": ["ZIPPO", "打火机"],
+      "description": "打火机和相关产品"
+    }
+  ],
+  "metadata": {
+    "total_categories": 25,
+    "total_sampled_products": 50000,
+    "products_per_category": 2000,
+    "created_date": "2024-09-11",
+    "description": "商品分类定义文件，包含25个主要商品大类及其关键词"
+  }
+}
+
