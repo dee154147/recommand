@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>推荐系统访问测试</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        h1 {
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 2rem;
+        }
+        .status-card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+            backdrop-filter: blur(10px);
+        }
+        .btn {
+            display: inline-block;
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            color: black;
+            text-decoration: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-weight: bold;
+            margin: 10px;
+            transition: transform 0.3s ease;
+        }
+        .btn:hover {
+            transform: translateY(-3px);
+        }
+        .status {
+            font-size: 1.2rem;
+            margin: 1rem 0;
+        }
+        .success { color: #00ff00; }
+        .error { color: #ff4444; }
+        .info { color: #00ffff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 推荐系统访问测试</h1>
+        
+        <div class="status-card">
+            <h2>📱 前端界面测试</h2>
+            <div class="status" id="frontend-status">正在测试...</div>
+            <a href="http://127.0.0.1:3000" class="btn" target="_blank">访问前端界面</a>
+        </div>
+
+        <div class="status-card">
+            <h2>🔧 后端API测试</h2>
+            <div class="status" id="backend-status">正在测试...</div>
+            <a href="http://127.0.0.1:5001/health" class="btn" target="_blank">测试后端API</a>
+        </div>
+
+        <div class="status-card">
+            <h2>📋 访问地址</h2>
+            <p class="info">前端界面: http://127.0.0.1:3000</p>
+            <p class="info">后端API: http://127.0.0.1:5001</p>
+            <p class="info">健康检查: http://127.0.0.1:5001/health</p>
+        </div>
+
+        <div class="status-card">
+            <h2>🛠️ 管理命令</h2>
+            <p>停止服务: ./stop.sh</p>
+            <p>重启服务: ./simple_start.sh</p>
+            <p>查看状态: ./check_status.sh</p>
+        </div>
+    </div>
+
+    <script>
+        // 测试后端API
+        fetch('http://127.0.0.1:5001/health')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('backend-status').innerHTML = 
+                    '<span class="success">✅ 后端API正常</span><br>' + 
+                    '状态: ' + data.status;
+            })
+            .catch(error => {
+                document.getElementById('backend-status').innerHTML = 
+                    '<span class="error">❌ 后端API无法访问</span><br>' + 
+                    '错误: ' + error.message;
+            });
+
+        // 测试前端
+        fetch('http://127.0.0.1:3000/')
+            .then(response => {
+                if (response.ok) {
+                    document.getElementById('frontend-status').innerHTML = 
+                        '<span class="success">✅ 前端界面正常</span>';
+                } else {
+                    document.getElementById('frontend-status').innerHTML = 
+                        '<span class="error">❌ 前端界面异常</span>';
+                }
+            })
+            .catch(error => {
+                document.getElementById('frontend-status').innerHTML = 
+                    '<span class="error">❌ 前端界面无法访问</span><br>' + 
+                    '错误: ' + error.message;
+            });
+    </script>
+</body>
+</html>
