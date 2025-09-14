@@ -191,6 +191,9 @@ test_*.html
 test_*.py
 *_test.py
 
+# Model files (large binary files)
+model/
+
 # Backup files
 *.bak
 *.backup
