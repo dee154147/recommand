@@ -1,15 +1,20 @@
 from flask import current_app
 from app import db
 from app.models import Product, Category
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, func, text
 import json
 import os
+import time
+from functools import lru_cache
 
 class ProductService:
     """商品服务类"""
     
     def __init__(self):
         self.per_page = current_app.config.get('POSTS_PER_PAGE', 20)
+        # 查询缓存
+        self._query_cache = {}
+        self._cache_ttl = 300  # 5分钟缓存
     
     def get_products(self, page=1, per_page=None, category=None, search=None):
         """获取商品列表"""
@@ -64,39 +69,94 @@ class ProductService:
         return product.to_dict() if product else None
     
     def search_products(self, query, page=1, per_page=None):
-        """搜索商品"""
+        """搜索商品 - 优化版本"""
         if per_page is None:
             per_page = self.per_page
-            
+        
+        # 检查缓存
+        cache_key = f"search_{query}_{page}_{per_page}"
+        current_time = time.time()
+        
+        if cache_key in self._query_cache:
+            cached_data, cache_time = self._query_cache[cache_key]
+            if current_time - cache_time < self._cache_ttl:
+                return cached_data
+        
+        # 优化查询：使用更精确的搜索条件
         search_term = f"%{query}%"
-        products_query = Product.query.filter(
-            or_(
-                Product.title.ilike(search_term),
-                Product.description.ilike(search_term),
-                Product.keywords.ilike(search_term)
-            )
-        )
         
-        pagination = products_query.paginate(
-            page=page, 
-            per_page=per_page, 
-            error_out=False
-        )
+        # 使用原生SQL优化查询性能
+        sql_query = text("""
+            SELECT p.id, p.name, p.description, p.price, p.category_id, 
+                   p.image_url, p.tags, p.embedding, p.created_at, p.updated_at,
+                   c.name as category_name
+            FROM products p
+            LEFT JOIN categories c ON p.category_id = c.id
+            WHERE p.name LIKE :search_term 
+               OR p.description LIKE :search_term
+               OR p.tags LIKE :search_term
+            ORDER BY p.id
+            LIMIT :limit OFFSET :offset
+        """)
         
-        products = [product.to_dict() for product in pagination.items]
+        offset = (page - 1) * per_page
         
-        return {
+        # 执行查询
+        result = db.session.execute(sql_query, {
+            'search_term': search_term,
+            'limit': per_page,
+            'offset': offset
+        })
+        
+        products = []
+        for row in result:
+            product_data = {
+                'id': row.id,
+                'name': row.name,
+                'description': row.description,
+                'price': float(row.price) if row.price else None,
+                'category_id': row.category_id,
+                'category_name': row.category_name,
+                'image_url': row.image_url,
+                'tags': json.loads(row.tags) if row.tags else [],
+                'embedding': json.loads(row.embedding) if row.embedding else None,
+                'created_at': row.created_at.isoformat() if row.created_at else None,
+                'updated_at': row.updated_at.isoformat() if row.updated_at else None
+            }
+            products.append(product_data)
+        
+        # 获取总数（优化版本）
+        count_query = text("""
+            SELECT COUNT(*) as total
+            FROM products p
+            WHERE p.name LIKE :search_term 
+               OR p.description LIKE :search_term
+               OR p.tags LIKE :search_term
+        """)
+        
+        total_result = db.session.execute(count_query, {'search_term': search_term})
+        total = total_result.fetchone().total
+        
+        # 计算分页信息
+        pages = (total + per_page - 1) // per_page
+        
+        result_data = {
             'products': products,
             'query': query,
             'pagination': {
                 'page': page,
-                'pages': pagination.pages,
+                'pages': pages,
                 'per_page': per_page,
-                'total': pagination.total,
-                'has_next': pagination.has_next,
-                'has_prev': pagination.has_prev
+                'total': total,
+                'has_next': page < pages,
+                'has_prev': page > 1
             }
         }
+        
+        # 缓存结果
+        self._query_cache[cache_key] = (result_data, current_time)
+        
+        return result_data
     
     def get_categories(self):
         """获取所有分类"""

@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品检索 - 智能推荐系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #ffffff;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* 背景动画 */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 0, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(0, 255, 0, 0.1) 0%, transparent 50%);
+            animation: backgroundMove 20s ease-in-out infinite;
+        }
+
+        @keyframes backgroundMove {
+            0%, 100% { transform: translateX(0) translateY(0); }
+            25% { transform: translateX(-2%) translateY(-2%); }
+            50% { transform: translateX(2%) translateY(-1%); }
+            75% { transform: translateX(-1%) translateY(2%); }
+        }
+
+        /* 顶部导航栏 */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+            z-index: 1000;
+            padding: 0 5%;
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 70px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-item a {
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+        }
+
+        .nav-item a:hover {
+            color: #00ffff;
+            background: rgba(0, 255, 255, 0.1);
+        }
+
+        .nav-item.active a {
+            color: #00ffff;
+            background: rgba(0, 255, 255, 0.1);
+        }
+
+        /* 下拉菜单样式 */
+        .nav-item.dropdown {
+            position: relative;
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 12px;
+            min-width: 200px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 1001;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .dropdown:hover .dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-item {
+            display: block;
+            padding: 1rem 1.5rem;
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: left;
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item:hover {
+            color: #ff4444;
+            background: rgba(255, 68, 68, 0.1);
+            padding-left: 2rem;
+        }
+
+        .dropdown-item.active {
+            color: #00ffff;
+            background: rgba(0, 255, 255, 0.1);
+        }
+
+        /* 下拉箭头 */
+        .dropdown-toggle::after {
+            content: '▼';
+            font-size: 0.7rem;
+            margin-left: 0.5rem;
+            transition: transform 0.3s ease;
+        }
+
+        .dropdown:hover .dropdown-toggle::after {
+            transform: rotate(180deg);
+        }
+
+        /* 主要内容区域 */
+        .main-content {
+            margin-top: 70px;
+            min-height: calc(100vh - 70px);
+            padding: 2rem 5%;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* 页面标题 */
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-subtitle {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 300;
+        }
+
+        /* 搜索区域 */
+        .search-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 3rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .search-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .search-bar {
+            width: 100%;
+            max-width: 600px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(0, 255, 255, 0.2);
+            border-radius: 50px;
+            color: #ffffff;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #00ffff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .search-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .search-btn {
+            padding: 0.8rem 2rem;
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            color: #ffffff;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 255, 255, 0.4);
+        }
+
+        .search-btn.secondary {
+            background: linear-gradient(45deg, #ff6b6b, #ffa500);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .search-btn.secondary:hover {
+            box-shadow: 0 10px 25px rgba(255, 107, 107, 0.4);
+        }
+
+        .search-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 搜索结果区域 */
+        .results-section {
+            margin-bottom: 3rem;
+        }
+
+        .results-header {
+            margin-bottom: 2rem;
+            padding: 0 1rem;
+        }
+
+        .results-count {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1rem;
+        }
+
+        /* 商品网格 */
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .product-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            border-color: #00ffff;
+            box-shadow: 0 15px 30px rgba(0, 255, 255, 0.2);
+        }
+
+        .product-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .product-card:hover::before {
+            opacity: 1;
+        }
+
+        .product-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(45deg, rgba(0, 255, 255, 0.1), rgba(255, 0, 255, 0.1));
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: rgba(255, 255, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+
+        .product-info {
+            text-align: left;
+        }
+
+        .product-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .product-description {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .product-price {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #00ffff;
+            margin-bottom: 1rem;
+        }
+
+        .product-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .product-tag {
+            background: rgba(0, 255, 255, 0.1);
+            color: #00ffff;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            border: 1px solid rgba(0, 255, 255, 0.2);
+        }
+
+        /* 分页 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 3rem;
+        }
+
+        .pagination-btn {
+            padding: 0.8rem 1.2rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .pagination-btn:hover {
+            background: rgba(0, 255, 255, 0.1);
+            border-color: #00ffff;
+        }
+
+        .pagination-btn.active {
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            border-color: transparent;
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination-info {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+        }
+
+        /* 加载状态 */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 3rem;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(0, 255, 255, 0.2);
+            border-top: 3px solid #00ffff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-left: 1rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-title {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .empty-description {
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+            }
+
+            .main-content {
+                padding: 1rem 2%;
+            }
+
+            .page-title {
+                font-size: 2rem;
+            }
+
+            .search-container {
+                gap: 1rem;
+            }
+
+            .search-buttons {
+                flex-direction: column;
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .search-btn {
+                width: 100%;
+            }
+
+            .products-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                gap: 1rem;
+            }
+
+            .results-header {
+                text-align: center;
+            }
+
+            .pagination {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            .pagination-btn {
+                padding: 0.6rem 1rem;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .products-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .product-card {
+                padding: 1rem;
+            }
+
+            .product-image {
+                height: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 背景动画 -->
+    <div class="bg-animation"></div>
+
+    <!-- 顶部导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">智能推荐系统</div>
+            <ul class="nav-menu">
+                <li class="nav-item"><a href="index.html">首页</a></li>
+                <li class="nav-item"><a href="index.html#features">产品特性</a></li>
+                <li class="nav-item"><a href="index.html#team">团队介绍</a></li>
+                <li class="nav-item"><a href="index.html#contact">联系我们</a></li>
+                <li class="nav-item dropdown">
+                    <a href="#" class="dropdown-toggle">功能演示</a>
+                    <div class="dropdown-menu">
+                        <a href="product-search.html" class="dropdown-item">商品检索</a>
+                        <a href="product-management.html" class="dropdown-item">商品管理</a>
+                        <a href="user-interaction.html" class="dropdown-item">用户交互</a>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- 主要内容区域 -->
+    <main class="main-content">
+        <div class="container">
+            <!-- 页面标题 -->
+            <div class="page-header">
+                <h1 class="page-title">商品检索</h1>
+                <p class="page-subtitle">智能语义检索，精准找到您需要的商品</p>
+            </div>
+
+            <!-- 搜索区域 -->
+            <section class="search-section">
+                <div class="search-container">
+                    <div class="search-bar">
+                        <input 
+                            type="text" 
+                            class="search-input" 
+                            placeholder="请输入商品关键词，如：智能手机、运动鞋、笔记本电脑..."
+                            id="searchInput"
+                        >
+                    </div>
+                    <div class="search-buttons">
+                        <button class="search-btn" id="semanticSearchBtn">
+                            🔍 语义检索
+                        </button>
+                        <button class="search-btn secondary" id="fuzzySearchBtn">
+                            📝 模糊匹配
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 搜索结果区域 -->
+            <section class="results-section">
+                <!-- 结果头部 -->
+                <div class="results-header">
+                    <div class="results-count" id="resultsCount">
+                        共找到 <span id="totalCount">0</span> 个商品
+                    </div>
+                </div>
+
+                <!-- 商品网格 -->
+                <div class="products-grid" id="productsGrid">
+                    <!-- 示例商品卡片 -->
+                    <div class="product-card">
+                        <div class="product-image">
+                            <img src="https://via.placeholder.com/280x200/00ffff/ffffff?text=商品图片" alt="商品图片">
+                        </div>
+                        <div class="product-info">
+                            <h3 class="product-name">iPhone 15 Pro Max 256GB 深空黑色</h3>
+                            <p class="product-description">苹果最新旗舰手机，搭载A17 Pro芯片，支持5G网络，配备4800万像素主摄像头</p>
+                            <div class="product-price">¥9,999</div>
+                            <div class="product-tags">
+                                <span class="product-tag">智能手机</span>
+                                <span class="product-tag">苹果</span>
+                                <span class="product-tag">5G</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="product-card">
+                        <div class="product-image">
+                            <img src="https://via.placeholder.com/280x200/ff00ff/ffffff?text=商品图片" alt="商品图片">
+                        </div>
+                        <div class="product-info">
+                            <h3 class="product-name">Nike Air Max 270 运动鞋</h3>
+                            <p class="product-description">经典运动鞋款，舒适透气，适合日常运动和休闲穿着</p>
+                            <div class="product-price">¥899</div>
+                            <div class="product-tags">
+                                <span class="product-tag">运动鞋</span>
+                                <span class="product-tag">Nike</span>
+                                <span class="product-tag">休闲</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="product-card">
+                        <div class="product-image">
+                            <img src="https://via.placeholder.com/280x200/00ff00/ffffff?text=商品图片" alt="商品图片">
+                        </div>
+                        <div class="product-info">
+                            <h3 class="product-name">MacBook Pro 14英寸 M3芯片</h3>
+                            <p class="product-description">专业级笔记本电脑，强大的M3芯片，适合专业创作和开发工作</p>
+                            <div class="product-price">¥15,999</div>
+                            <div class="product-tags">
+                                <span class="product-tag">笔记本电脑</span>
+                                <span class="product-tag">苹果</span>
+                                <span class="product-tag">专业</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="product-card">
+                        <div class="product-image">
+                            <img src="https://via.placeholder.com/280x200/ff6b6b/ffffff?text=商品图片" alt="商品图片">
+                        </div>
+                        <div class="product-info">
+                            <h3 class="product-name">Sony WH-1000XM5 降噪耳机</h3>
+                            <p class="product-description">业界领先的降噪技术，30小时续航，支持快速充电</p>
+                            <div class="product-price">¥2,299</div>
+                            <div class="product-tags">
+                                <span class="product-tag">耳机</span>
+                                <span class="product-tag">降噪</span>
+                                <span class="product-tag">无线</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="product-card">
+                        <div class="product-image">
+                            <img src="https://via.placeholder.com/280x200/ffa500/ffffff?text=商品图片" alt="商品图片">
+                        </div>
+                        <div class="product-info">
+                            <h3 class="product-name">iPad Air 第5代 64GB</h3>
+                            <p class="product-description">轻薄便携的平板电脑，支持Apple Pencil，适合学习和创作</p>
+                            <div class="product-price">¥4,399</div>
+                            <div class="product-tags">
+                                <span class="product-tag">平板电脑</span>
+                                <span class="product-tag">苹果</span>
+                                <span class="product-tag">便携</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="product-card">
+                        <div class="product-image">
+                            <img src="https://via.placeholder.com/280x200/9c27b0/ffffff?text=商品图片" alt="商品图片">
+                        </div>
+                        <div class="product-info">
+                            <h3 class="product-name">Dyson V15 Detect 吸尘器</h3>
+                            <p class="product-description">智能吸尘器，激光探测技术，深度清洁地毯和硬质地面</p>
+                            <div class="product-price">¥4,999</div>
+                            <div class="product-tags">
+                                <span class="product-tag">吸尘器</span>
+                                <span class="product-tag">智能</span>
+                                <span class="product-tag">清洁</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="product-card">
+                        <div class="product-image">
+                            <img src="https://via.placeholder.com/280x200/2196f3/ffffff?text=商品图片" alt="商品图片">
+                        </div>
+                        <div class="product-info">
+                            <h3 class="product-name">Samsung Galaxy S24 Ultra</h3>
+                            <p class="product-description">三星旗舰手机，200MP主摄像头，S Pen支持，AI功能丰富</p>
+                            <div class="product-price">¥8,999</div>
+                            <div class="product-tags">
+                                <span class="product-tag">智能手机</span>
+                                <span class="product-tag">三星</span>
+                                <span class="product-tag">AI</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="product-card">
+                        <div class="product-image">
+                            <img src="https://via.placeholder.com/280x200/4caf50/ffffff?text=商品图片" alt="商品图片">
+                        </div>
+                        <div class="product-info">
+                            <h3 class="product-name">AirPods Pro 第2代</h3>
+                            <p class="product-description">主动降噪无线耳机，空间音频，自适应透明模式</p>
+                            <div class="product-price">¥1,899</div>
+                            <div class="product-tags">
+                                <span class="product-tag">耳机</span>
+                                <span class="product-tag">苹果</span>
+                                <span class="product-tag">降噪</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="product-card">
+                        <div class="product-image">
+                            <img src="https://via.placeholder.com/280x200/e91e63/ffffff?text=商品图片" alt="商品图片">
+                        </div>
+                        <div class="product-info">
+                            <h3 class="product-name">Tesla Model Y 长续航版</h3>
+                            <p class="product-description">纯电动SUV，续航里程660公里，自动驾驶功能</p>
+                            <div class="product-price">¥299,900</div>
+                            <div class="product-tags">
+                                <span class="product-tag">电动车</span>
+                                <span class="product-tag">SUV</span>
+                                <span class="product-tag">自动驾驶</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="product-card">
+                        <div class="product-image">
+                            <img src="https://via.placeholder.com/280x200/ff9800/ffffff?text=商品图片" alt="商品图片">
+                        </div>
+                        <div class="product-info">
+                            <h3 class="product-name">Apple Watch Series 9</h3>
+                            <p class="product-description">智能手表，健康监测，GPS定位，防水设计</p>
+                            <div class="product-price">¥2,999</div>
+                            <div class="product-tags">
+                                <span class="product-tag">智能手表</span>
+                                <span class="product-tag">健康</span>
+                                <span class="product-tag">运动</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="product-card">
+                        <div class="product-image">
+                            <img src="https://via.placeholder.com/280x200/795548/ffffff?text=商品图片" alt="商品图片">
+                        </div>
+                        <div class="product-info">
+                            <h3 class="product-name">Nintendo Switch OLED</h3>
+                            <p class="product-description">游戏主机，7英寸OLED屏幕，便携式设计</p>
+                            <div class="product-price">¥2,599</div>
+                            <div class="product-tags">
+                                <span class="product-tag">游戏机</span>
+                                <span class="product-tag">任天堂</span>
+                                <span class="product-tag">便携</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="product-card">
+                        <div class="product-image">
+                            <img src="https://via.placeholder.com/280x200/607d8b/ffffff?text=商品图片" alt="商品图片">
+                        </div>
+                        <div class="product-info">
+                            <h3 class="product-name">Canon EOS R6 Mark II</h3>
+                            <p class="product-description">专业相机，2420万像素，4K视频录制，防抖技术</p>
+                            <div class="product-price">¥18,999</div>
+                            <div class="product-tags">
+                                <span class="product-tag">相机</span>
+                                <span class="product-tag">专业</span>
+                                <span class="product-tag">4K</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 分页 -->
+                <div class="pagination">
+                    <button class="pagination-btn" id="prevBtn" disabled>上一页</button>
+                    <button class="pagination-btn active">1</button>
+                    <button class="pagination-btn">2</button>
+                    <button class="pagination-btn">3</button>
+                    <button class="pagination-btn">4</button>
+                    <button class="pagination-btn">5</button>
+                    <button class="pagination-btn" id="nextBtn">下一页</button>
+                    <div class="pagination-info">
+                        第 1 页，共 5 页
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        // 搜索功能
+        document.getElementById('semanticSearchBtn').addEventListener('click', function() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (query) {
+                performSearch(query, 'semantic');
+            } else {
+                alert('请输入搜索关键词');
+            }
+        });
+
+        document.getElementById('fuzzySearchBtn').addEventListener('click', function() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (query) {
+                performSearch(query, 'fuzzy');
+            } else {
+                alert('请输入搜索关键词');
+            }
+        });
+
+        // 搜索输入框回车事件
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const query = this.value.trim();
+                if (query) {
+                    performSearch(query, 'semantic');
+                }
+            }
+        });
+
+        function performSearch(query, type) {
+            console.log(`执行${type === 'semantic' ? '语义' : '模糊'}搜索:`, query);
+            
+            // 显示加载状态
+            showLoading();
+            
+            // 模拟搜索延迟
+            setTimeout(() => {
+                hideLoading();
+                updateResultsCount(156); // 模拟搜索结果数量
+            }, 1500);
+        }
+
+        function showLoading() {
+            const grid = document.getElementById('productsGrid');
+            grid.innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-text">正在搜索商品...</div>
+                </div>
+            `;
+        }
+
+        function hideLoading() {
+            // 这里会重新加载商品列表
+            // 实际实现中会从API获取数据
+        }
+
+        function updateResultsCount(count) {
+            document.getElementById('totalCount').textContent = count;
+        }
+
+        // 商品卡片点击事件
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.product-card')) {
+                const card = e.target.closest('.product-card');
+                const productName = card.querySelector('.product-name').textContent;
+                console.log('点击商品:', productName);
+                // 这里可以跳转到商品详情页
+            }
+        });
+
+        // 分页功能
+        document.querySelectorAll('.pagination-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                if (this.disabled) return;
+                
+                // 移除所有active类
+                document.querySelectorAll('.pagination-btn').forEach(b => b.classList.remove('active'));
+                
+                // 添加active类到当前按钮
+                this.classList.add('active');
+                
+                console.log('切换到第', this.textContent, '页');
+                // 这里会重新加载对应页面的商品
+            });
+        });
+
+        // 排序功能已移除，统一按相似度排序
+    </script>
+</body>
+</html>

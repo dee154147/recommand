@@ -8,44 +8,39 @@ class Product(db.Model):
     __tablename__ = 'products'
     
     id = db.Column(db.Integer, primary_key=True)
-    product_id = db.Column(db.String(50), unique=True, nullable=False, index=True)
-    title = db.Column(db.Text, nullable=False)
-    image_url = db.Column(db.String(500))
-    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'))
-    price = db.Column(db.Float)
+    name = db.Column(db.String(200), nullable=False, index=True)
     description = db.Column(db.Text)
-    
-    # 推荐系统相关字段
-    keywords = db.Column(db.Text)  # 关键词，JSON格式存储
-    vector_embedding = db.Column(db.Text)  # 向量嵌入，JSON格式存储
-    similarity_scores = db.Column(db.Text)  # 相似度分数，JSON格式存储
-    
-    # 时间戳
+    price = db.Column(db.Numeric(10, 2))
+    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'))
+    image_url = db.Column(db.String(500))
+    tags = db.Column(db.Text)  # JSON字符串存储标签
+    embedding = db.Column(db.Text)  # 商品特征向量，JSON格式存储
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # 关系
-    category = db.relationship('Category', backref=db.backref('products', lazy=True))
-    interactions = db.relationship('UserInteraction', backref='product', lazy=True)
+    category = db.relationship('Category', backref='products')
+    interactions = db.relationship('UserInteraction', backref='product', lazy='dynamic')
+    product_tags = db.relationship('ProductTag', backref='product', lazy='dynamic')
     
     def to_dict(self):
         """转换为字典格式"""
         return {
             'id': self.id,
-            'product_id': self.product_id,
-            'title': self.title,
-            'image_url': self.image_url,
+            'name': self.name,
+            'description': self.description,
+            'price': float(self.price) if self.price else None,
             'category_id': self.category_id,
             'category_name': self.category.name if self.category else None,
-            'price': self.price,
-            'description': self.description,
-            'keywords': json.loads(self.keywords) if self.keywords else [],
+            'image_url': self.image_url,
+            'tags': json.loads(self.tags) if self.tags else [],
+            'embedding': json.loads(self.embedding) if self.embedding else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
     
     def __repr__(self):
-        return f'<Product {self.product_id}: {self.title[:50]}...>'
+        return f'<Product {self.id}: {self.name[:50]}...>'
 
 class Category(db.Model):
     """商品分类模型"""
@@ -53,26 +48,69 @@ class Category(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
-    keywords = db.Column(db.Text)  # 关键词列表，JSON格式存储
     description = db.Column(db.Text)
-    
-    # 时间戳
+    parent_id = db.Column(db.Integer, db.ForeignKey('categories.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # 关系
+    parent = db.relationship('Category', remote_side=[id], backref='children')
     
     def to_dict(self):
         """转换为字典格式"""
         return {
             'id': self.id,
             'name': self.name,
-            'keywords': json.loads(self.keywords) if self.keywords else [],
             'description': self.description,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            'parent_id': self.parent_id,
+            'created_at': self.created_at.isoformat() if self.created_at else None
         }
     
     def __repr__(self):
         return f'<Category {self.name}>'
+
+class ProductTag(db.Model):
+    """商品标签模型"""
+    __tablename__ = 'product_tags'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    tag = db.Column(db.String(100), nullable=False)
+    weight = db.Column(db.Numeric(5, 4))  # 标签权重
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        """转换为字典格式"""
+        return {
+            'id': self.id,
+            'product_id': self.product_id,
+            'tag': self.tag,
+            'weight': float(self.weight) if self.weight else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+    
+    def __repr__(self):
+        return f'<ProductTag {self.product_id}: {self.tag}>'
+
+class TagVector(db.Model):
+    """标签向量模型"""
+    __tablename__ = 'tag_vectors'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    tag = db.Column(db.String(100), unique=True, nullable=False)
+    vector = db.Column(db.Text)  # 标签向量，JSON格式存储
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        """转换为字典格式"""
+        return {
+            'id': self.id,
+            'tag': self.tag,
+            'vector': json.loads(self.vector) if self.vector else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+    
+    def __repr__(self):
+        return f'<TagVector {self.tag}>'
 
 class User(db.Model):
     """用户模型"""

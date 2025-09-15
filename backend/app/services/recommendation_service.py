@@ -1,245 +1,532 @@
-from flask import current_app
-from app import db
-from app.models import Product, User, UserInteraction, RecommendationCache
-from datetime import datetime, timedelta
+"""
+基于内容的推荐算法服务
+实现商品标签向量计算和商品特征向量生成
+"""
+
+import os
 import json
-from typing import List, Dict, Optional
+import numpy as np
+from typing import List, Dict, Tuple, Optional
+from gensim.models import KeyedVectors
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, text
 import logging
+import hashlib
+from functools import lru_cache
+import time
+
+from app import db
+from app.models import Product, ProductTag, TagVector, Category
+from app.utils.text_processing import TextProcessor
 
 logger = logging.getLogger(__name__)
 
 class RecommendationService:
-    """推荐服务类 - 基础架构框架"""
+    """推荐算法服务类"""
+    
+    _instance = None
+    _initialized = False
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(RecommendationService, cls).__new__(cls)
+        return cls._instance
     
     def __init__(self):
-        self.cache_expiry_hours = 24  # 缓存过期时间（小时）
-        self.default_limit = 10  # 默认推荐数量
-    
-    def get_similar_products(self, product_id: int, limit: int = None) -> List[Dict]:
-        """获取相似商品推荐 - 待实现"""
-        if limit is None:
-            limit = self.default_limit
+        if not self._initialized:
+            # 从backend/app/services向上三级到项目根目录
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+            self.model_path = os.path.join(project_root, 'model', 'Tencent_AILab_ChineseEmbedding.bin')
+            self.word_vectors = None
+            self.text_processor = TextProcessor()
+            self.vector_dim = 200  # Tencent词向量维度
+            
+            # 查询结果缓存
+            self.search_cache = {}
+            self.cache_max_size = 100
+            self.cache_ttl = 300  # 5分钟缓存时间
+            
+            # 在初始化时加载词向量模型
+            logger.info("初始化推荐服务，正在加载词向量模型...")
+            self.load_word_vectors()
+            
+            self._initialized = True
         
-        logger.info(f"Getting similar products for product_id: {product_id}, limit: {limit}")
-        
+    def load_word_vectors(self) -> bool:
+        """加载词向量模型"""
         try:
-            # 检查缓存
-            cache_key = f"similar_products_{product_id}_{limit}"
-            cached_result = self._get_cached_recommendations(cache_key)
-            if cached_result:
-                logger.info(f"Returning cached recommendations for product {product_id}")
-                return cached_result
-            
-            # 获取目标商品
-            target_product = Product.query.filter_by(id=product_id).first()
-            if not target_product:
-                logger.warning(f"Product {product_id} not found")
-                return []
-            
-            # TODO: 实现基于内容的推荐算法
-            # 这里返回模拟数据，实际实现时会被替换
-            similar_products = self._get_mock_similar_products(target_product, limit)
-            
-            # 缓存结果
-            self._cache_recommendations(cache_key, 'similar_products', str(product_id), similar_products)
-            
-            return similar_products
-            
-        except Exception as e:
-            logger.error(f"Error getting similar products for {product_id}: {str(e)}")
-            return []
-    
-    def get_user_recommendations(self, user_id: int, limit: int = None) -> List[Dict]:
-        """获取用户个性化推荐 - 待实现"""
-        if limit is None:
-            limit = self.default_limit
-        
-        logger.info(f"Getting user recommendations for user_id: {user_id}, limit: {limit}")
-        
-        try:
-            # 检查缓存
-            cache_key = f"user_recommendations_{user_id}_{limit}"
-            cached_result = self._get_cached_recommendations(cache_key)
-            if cached_result:
-                logger.info(f"Returning cached recommendations for user {user_id}")
-                return cached_result
-            
-            # 获取用户信息
-            user = User.query.filter_by(id=user_id).first()
-            if not user:
-                logger.warning(f"User {user_id} not found")
-                return []
-            
-            # TODO: 实现基于用户偏好的推荐算法
-            # 这里返回模拟数据，实际实现时会被替换
-            recommendations = self._get_mock_user_recommendations(user, limit)
-            
-            # 缓存结果
-            self._cache_recommendations(cache_key, 'user_recommendations', str(user_id), recommendations)
-            
-            return recommendations
-            
-        except Exception as e:
-            logger.error(f"Error getting user recommendations for {user_id}: {str(e)}")
-            return []
-    
-    def _get_mock_similar_products(self, target_product: Product, limit: int) -> List[Dict]:
-        """模拟相似商品推荐 - 用于测试和演示"""
-        try:
-            # 获取同分类的其他商品
-            similar_products = Product.query.filter(
-                Product.category_id == target_product.category_id,
-                Product.id != target_product.id
-            ).limit(limit).all()
-            
-            # 转换为字典格式
-            recommendations = []
-            for product in similar_products:
-                product_dict = product.to_dict()
-                product_dict['similarity_score'] = 0.85  # 模拟相似度分数
-                product_dict['recommendation_reason'] = 'same_category'
-                recommendations.append(product_dict)
-            
-            logger.info(f"Returning {len(recommendations)} mock similar products")
-            return recommendations
-            
-        except Exception as e:
-            logger.error(f"Error getting mock similar products: {str(e)}")
-            return []
-    
-    def _get_mock_user_recommendations(self, user: User, limit: int) -> List[Dict]:
-        """模拟用户推荐 - 用于测试和演示"""
-        try:
-            # 获取用户交互历史
-            user_interactions = UserInteraction.query.filter_by(user_id=user.id).all()
-            
-            if not user_interactions:
-                # 如果没有交互历史，返回热门商品
-                return self._get_mock_popular_products(limit)
-            
-            # 获取用户交互过的商品分类
-            interacted_product_ids = [interaction.product_id for interaction in user_interactions]
-            user_products = Product.query.filter(Product.id.in_(interacted_product_ids)).all()
-            
-            # 获取用户偏好的分类
-            preferred_categories = set()
-            for product in user_products:
-                if product.category_id:
-                    preferred_categories.add(product.category_id)
-            
-            # 获取同分类的其他商品
-            recommendations = []
-            for category_id in preferred_categories:
-                category_products = Product.query.filter(
-                    Product.category_id == category_id,
-                    ~Product.id.in_(interacted_product_ids)
-                ).limit(limit // len(preferred_categories) + 1).all()
+            if not os.path.exists(self.model_path):
+                logger.error(f"词向量模型文件不存在: {self.model_path}")
+                return False
                 
-                for product in category_products:
-                    product_dict = product.to_dict()
-                    product_dict['similarity_score'] = 0.75  # 模拟相似度分数
-                    product_dict['recommendation_reason'] = 'user_preference'
-                    recommendations.append(product_dict)
-            
-            # 限制返回数量
-            recommendations = recommendations[:limit]
-            
-            logger.info(f"Returning {len(recommendations)} mock user recommendations")
-            return recommendations
+            logger.info("正在加载Tencent词向量模型...")
+            self.word_vectors = KeyedVectors.load(self.model_path, mmap='r')
+            logger.info(f"词向量模型加载成功，词汇量: {len(self.word_vectors)}")
+            return True
             
         except Exception as e:
-            logger.error(f"Error getting mock user recommendations: {str(e)}")
-            return self._get_mock_popular_products(limit)
+            logger.error(f"加载词向量模型失败: {str(e)}")
+            return False
     
-    def _get_mock_popular_products(self, limit: int) -> List[Dict]:
-        """模拟热门商品推荐"""
-        try:
-            # 获取一些商品作为热门商品
-            popular_products = Product.query.limit(limit).all()
-            
-            recommendations = []
-            for product in popular_products:
-                product_dict = product.to_dict()
-                product_dict['similarity_score'] = 0.90  # 模拟相似度分数
-                product_dict['recommendation_reason'] = 'popular'
-                recommendations.append(product_dict)
-            
-            logger.info(f"Returning {len(recommendations)} mock popular products")
-            return recommendations
-            
-        except Exception as e:
-            logger.error(f"Error getting mock popular products: {str(e)}")
-            return []
+    def _get_cache_key(self, query: str, top_k: int) -> str:
+        """生成缓存键"""
+        return hashlib.md5(f"{query}_{top_k}".encode()).hexdigest()
     
-    def _get_cached_recommendations(self, cache_key: str) -> Optional[List[Dict]]:
-        """获取缓存的推荐结果"""
-        try:
-            cache_entry = RecommendationCache.query.filter_by(cache_key=cache_key).first()
-            if cache_entry and cache_entry.expires_at > datetime.utcnow():
-                return json.loads(cache_entry.recommendations)
-            elif cache_entry:
-                # 删除过期缓存
-                db.session.delete(cache_entry)
-                db.session.commit()
-        except Exception as e:
-            logger.error(f"Error getting cached recommendations: {str(e)}")
+    def _get_from_cache(self, cache_key: str) -> Optional[List[Dict]]:
+        """从缓存获取结果"""
+        if cache_key in self.search_cache:
+            cached_data = self.search_cache[cache_key]
+            if time.time() - cached_data['timestamp'] < self.cache_ttl:
+                logger.debug(f"从缓存获取查询结果: {cache_key}")
+                return cached_data['results']
+            else:
+                # 缓存过期，删除
+                del self.search_cache[cache_key]
         return None
     
-    def _cache_recommendations(self, cache_key: str, cache_type: str, target_id: str, recommendations: List[Dict]):
-        """缓存推荐结果"""
-        try:
-            expires_at = datetime.utcnow() + timedelta(hours=self.cache_expiry_hours)
-            
-            cache_entry = RecommendationCache(
-                cache_key=cache_key,
-                cache_type=cache_type,
-                target_id=target_id,
-                recommendations=json.dumps(recommendations),
-                expires_at=expires_at
-            )
-            
-            # 删除旧的缓存
-            old_cache = RecommendationCache.query.filter_by(cache_key=cache_key).first()
-            if old_cache:
-                db.session.delete(old_cache)
-            
-            db.session.add(cache_entry)
-            db.session.commit()
-            
-        except Exception as e:
-            logger.error(f"Error caching recommendations: {str(e)}")
+    def _save_to_cache(self, cache_key: str, results: List[Dict]):
+        """保存结果到缓存"""
+        # 清理过期缓存
+        current_time = time.time()
+        expired_keys = [k for k, v in self.search_cache.items() 
+                       if current_time - v['timestamp'] > self.cache_ttl]
+        for key in expired_keys:
+            del self.search_cache[key]
+        
+        # 限制缓存大小
+        if len(self.search_cache) >= self.cache_max_size:
+            # 删除最旧的缓存
+            oldest_key = min(self.search_cache.keys(), 
+                           key=lambda k: self.search_cache[k]['timestamp'])
+            del self.search_cache[oldest_key]
+        
+        self.search_cache[cache_key] = {
+            'results': results,
+            'timestamp': current_time
+        }
+        logger.debug(f"保存查询结果到缓存: {cache_key}")
     
-    def clear_cache(self, cache_type: str = None):
-        """清除缓存"""
+    @lru_cache(maxsize=10000)
+    def get_word_vector(self, word: str) -> Optional[np.ndarray]:
+        """获取单个词的向量（带缓存）"""
+        if not self.word_vectors:
+            return None
+            
         try:
-            if cache_type:
-                RecommendationCache.query.filter_by(cache_type=cache_type).delete()
+            if word in self.word_vectors:
+                return self.word_vectors[word]
             else:
-                RecommendationCache.query.delete()
-            db.session.commit()
-            logger.info(f"Cleared cache: {cache_type or 'all'}")
+                # 尝试小写
+                word_lower = word.lower()
+                if word_lower in self.word_vectors:
+                    return self.word_vectors[word_lower]
+                else:
+                    logger.debug(f"词 '{word}' 不在词向量模型中")
+                    return None
         except Exception as e:
-            logger.error(f"Error clearing cache: {str(e)}")
+            logger.error(f"获取词向量失败: {str(e)}")
+            return None
     
-    def get_recommendation_stats(self) -> Dict[str, any]:
-        """获取推荐系统统计信息"""
+    def calculate_tag_vector(self, tag: str) -> Optional[np.ndarray]:
+        """计算标签的向量表示"""
+        if not self.word_vectors:
+            return None
+            
+        try:
+            # 对标签进行分词
+            words = self.text_processor.segment_text(tag)
+            if not words:
+                return None
+            
+            # 获取所有词的向量
+            word_vectors = []
+            for word in words:
+                vector = self.get_word_vector(word)
+                if vector is not None:
+                    word_vectors.append(vector)
+            
+            if not word_vectors:
+                logger.debug(f"标签 '{tag}' 无法获取有效词向量")
+                return None
+            
+            # 计算标签向量的平均值
+            tag_vector = np.mean(word_vectors, axis=0)
+            return tag_vector
+            
+        except Exception as e:
+            logger.error(f"计算标签向量失败: {str(e)}")
+            return None
+    
+    def precompute_tag_vectors(self) -> Dict[str, int]:
+        """预计算所有标签的向量"""
+        logger.info("开始预计算标签向量...")
+        
+        if not self.load_word_vectors():
+            return {"success": 0, "failed": 0, "error": "词向量模型加载失败"}
+        
+        # 获取所有唯一的标签
+        unique_tags = db.session.query(ProductTag.tag).distinct().all()
+        unique_tags = [tag[0] for tag in unique_tags]
+        
+        logger.info(f"发现 {len(unique_tags)} 个唯一标签")
+        
+        success_count = 0
+        failed_count = 0
+        
+        for tag in unique_tags:
+            try:
+                # 检查是否已经计算过
+                existing_vector = TagVector.query.filter_by(tag=tag).first()
+                if existing_vector:
+                    logger.debug(f"标签 '{tag}' 的向量已存在，跳过")
+                    continue
+                
+                # 计算标签向量
+                tag_vector = self.calculate_tag_vector(tag)
+                if tag_vector is not None:
+                    # 保存到数据库
+                    tag_vector_obj = TagVector(
+                        tag=tag,
+                        vector=json.dumps(tag_vector.tolist())
+                    )
+                    db.session.add(tag_vector_obj)
+                    success_count += 1
+                    
+                    if success_count % 100 == 0:
+                        db.session.commit()
+                        logger.info(f"已处理 {success_count} 个标签向量")
+                        
+                else:
+                    failed_count += 1
+                    logger.debug(f"标签 '{tag}' 向量计算失败")
+                    
+            except Exception as e:
+                failed_count += 1
+                logger.error(f"处理标签 '{tag}' 时出错: {str(e)}")
+        
+        # 提交剩余的更改
+        try:
+            db.session.commit()
+            logger.info(f"标签向量预计算完成: 成功 {success_count}, 失败 {failed_count}")
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"提交标签向量时出错: {str(e)}")
+            return {"success": 0, "failed": 0, "error": str(e)}
+        
+        return {"success": success_count, "failed": failed_count}
+    
+    def calculate_product_vector(self, product_id: int) -> Optional[np.ndarray]:
+        """计算商品的特征向量（基于标签向量的加权平均）"""
+        try:
+            # 获取商品的所有标签及其权重
+            product_tags = db.session.query(ProductTag).filter(
+                ProductTag.product_id == product_id
+            ).all()
+            
+            if not product_tags:
+                logger.debug(f"商品 {product_id} 没有标签")
+                return None
+            
+            # 获取标签向量
+            tag_vectors = []
+            weights = []
+            
+            for product_tag in product_tags:
+                tag_vector_obj = TagVector.query.filter_by(tag=product_tag.tag).first()
+                if tag_vector_obj:
+                    vector = np.array(json.loads(tag_vector_obj.vector))
+                    tag_vectors.append(vector)
+                    weights.append(float(product_tag.weight) if product_tag.weight else 1.0)
+            
+            if not tag_vectors:
+                logger.debug(f"商品 {product_id} 没有有效的标签向量")
+                return None
+            
+            # 计算加权平均向量
+            tag_vectors = np.array(tag_vectors)
+            weights = np.array(weights)
+            
+            # 归一化权重
+            weights = weights / np.sum(weights)
+            
+            # 计算加权平均
+            product_vector = np.average(tag_vectors, axis=0, weights=weights)
+            
+            return product_vector
+            
+        except Exception as e:
+            logger.error(f"计算商品 {product_id} 向量失败: {str(e)}")
+            return None
+    
+    def precompute_product_vectors(self) -> Dict[str, int]:
+        """预计算所有商品的特征向量"""
+        logger.info("开始预计算商品特征向量...")
+        
+        # 获取所有商品
+        products = Product.query.all()
+        logger.info(f"发现 {len(products)} 个商品")
+        
+        success_count = 0
+        failed_count = 0
+        
+        for product in products:
+            try:
+                # 检查是否已经计算过
+                if product.embedding:
+                    logger.debug(f"商品 {product.id} 的向量已存在，跳过")
+                    continue
+                
+                # 计算商品向量
+                product_vector = self.calculate_product_vector(product.id)
+                if product_vector is not None:
+                    # 保存到数据库
+                    product.embedding = json.dumps(product_vector.tolist())
+                    success_count += 1
+                    
+                    if success_count % 100 == 0:
+                        db.session.commit()
+                        logger.info(f"已处理 {success_count} 个商品向量")
+                        
+                else:
+                    failed_count += 1
+                    logger.debug(f"商品 {product.id} 向量计算失败")
+                    
+            except Exception as e:
+                failed_count += 1
+                logger.error(f"处理商品 {product.id} 时出错: {str(e)}")
+        
+        # 提交剩余的更改
+        try:
+            db.session.commit()
+            logger.info(f"商品向量预计算完成: 成功 {success_count}, 失败 {failed_count}")
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"提交商品向量时出错: {str(e)}")
+            return {"success": 0, "failed": 0, "error": str(e)}
+        
+        return {"success": success_count, "failed": failed_count}
+    
+    def calculate_similarity(self, vector1: np.ndarray, vector2: np.ndarray) -> float:
+        """计算两个向量的余弦相似度"""
+        try:
+            # 计算余弦相似度
+            dot_product = np.dot(vector1, vector2)
+            norm1 = np.linalg.norm(vector1)
+            norm2 = np.linalg.norm(vector2)
+            
+            if norm1 == 0 or norm2 == 0:
+                return 0.0
+            
+            similarity = dot_product / (norm1 * norm2)
+            return float(similarity)
+            
+        except Exception as e:
+            logger.error(f"计算相似度失败: {str(e)}")
+            return 0.0
+    
+    def find_similar_products(self, product_id: int, top_k: int = 10) -> List[Dict]:
+        """找到与指定商品相似的商品"""
+        try:
+            # 获取目标商品的向量
+            target_product = Product.query.get(product_id)
+            if not target_product or not target_product.embedding:
+                logger.warning(f"商品 {product_id} 没有特征向量")
+                return []
+            
+            target_vector = np.array(json.loads(target_product.embedding))
+            
+            # 获取所有有向量的商品
+            products_with_vectors = Product.query.filter(
+                Product.embedding.isnot(None),
+                Product.id != product_id
+            ).all()
+            
+            similarities = []
+            for product in products_with_vectors:
+                try:
+                    product_vector = np.array(json.loads(product.embedding))
+                    similarity = self.calculate_similarity(target_vector, product_vector)
+                    
+                    similarities.append({
+                        'product_id': product.id,
+                        'product_name': product.name,
+                        'similarity': similarity
+                    })
+                except Exception as e:
+                    logger.error(f"计算商品 {product.id} 相似度失败: {str(e)}")
+                    continue
+            
+            # 按相似度排序
+            similarities.sort(key=lambda x: x['similarity'], reverse=True)
+            
+            return similarities[:top_k]
+            
+        except Exception as e:
+            logger.error(f"查找相似商品失败: {str(e)}")
+            return []
+    
+    def semantic_search(self, query: str, top_k: int = 20, timeout: int = 30) -> List[Dict]:
+        """基于语义的搜索 - 直接使用检索词特征向量与商品向量进行相似度匹配"""
+        start_time = time.time()
+        
+        try:
+            # 检查缓存
+            cache_key = self._get_cache_key(query, top_k)
+            cached_results = self._get_from_cache(cache_key)
+            if cached_results is not None:
+                return cached_results
+            
+            # 确保词向量模型已加载
+            if not self.word_vectors:
+                logger.warning("词向量模型未加载，使用降级策略")
+                return self._fallback_tag_search(query, top_k)
+            
+            # 对查询进行分词
+            query_words = self.text_processor.segment_text(query)
+            logger.info(f"查询 '{query}' 分词结果: {query_words}")
+            if not query_words:
+                logger.warning(f"查询 '{query}' 分词结果为空")
+                return []
+            
+            # 计算查询向量
+            query_vectors = []
+            for word in query_words:
+                vector = self.get_word_vector(word)
+                if vector is not None:
+                    query_vectors.append(vector)
+                    logger.debug(f"词 '{word}' 向量获取成功")
+                else:
+                    logger.warning(f"词 '{word}' 向量获取失败")
+            
+            if not query_vectors:
+                logger.warning(f"查询 '{query}' 无法获取有效词向量")
+                return []
+            
+            logger.info(f"查询 '{query}' 成功获取 {len(query_vectors)} 个词向量")
+    
+            # 计算查询向量的平均值
+            query_vector = np.mean(query_vectors, axis=0)
+            
+            # 为了提高性能，只计算部分商品的相似度
+            # 先随机采样一部分商品进行计算
+            max_products = min(5000, top_k * 50)  # 最多计算5000个商品或top_k*50个商品
+            similarities = []
+            
+            # 随机获取商品进行相似度计算
+            products = Product.query.filter(
+                Product.embedding.isnot(None)
+            ).order_by(db.func.random()).limit(max_products).all()
+            
+            logger.info(f"开始计算与 {len(products)} 个商品的相似度")
+            
+            # 计算相似度
+            for product in products:
+                # 检查超时
+                if time.time() - start_time > timeout:
+                    logger.warning(f"语义搜索超时，已处理 {len(similarities)} 个商品")
+                    break
+                
+                try:
+                    if product.embedding:
+                        product_vector = np.array(json.loads(product.embedding))
+                        similarity = self.calculate_similarity(query_vector, product_vector)
+                        
+                        similarities.append({
+                            'product_id': product.id,
+                            'product_name': product.name,
+                            'similarity': similarity
+                        })
+                except Exception as e:
+                    logger.error(f"计算商品 {product.id} 相似度失败: {str(e)}")
+                    continue
+            
+            # 按相似度排序（确保稳定性）
+            # 使用稳定的排序算法，相同相似度时按product_id排序
+            similarities.sort(key=lambda x: (-x['similarity'], x['product_id']))
+            
+            # 添加调试信息
+            logger.info(f"语义搜索 '{query}' 计算了 {len(similarities)} 个商品的相似度，最高相似度: {similarities[0]['similarity'] if similarities else 0}")
+            
+            results = similarities[:top_k]
+            
+            # 保存到缓存
+            self._save_to_cache(cache_key, results)
+            
+            return results
+            
+        except Exception as e:
+            logger.error(f"语义搜索失败: {str(e)}")
+            # 降级策略：使用标签匹配
+            return self._fallback_tag_search(query, top_k)
+    
+    def _fallback_tag_search(self, query: str, top_k: int = 20) -> List[Dict]:
+        """降级策略：基于标签的快速搜索"""
+        try:
+            logger.info(f"使用降级策略搜索: {query}")
+            
+            # 对查询进行分词
+            query_words = self.text_processor.segment_text(query)
+            if not query_words:
+                return []
+            
+            # 通过标签匹配找到商品
+            products = []
+            for word in query_words:
+                if len(word) > 1:  # 过滤单字符
+                    # 直接查询商品，避免复杂的JOIN操作
+                    matched_products = db.session.query(Product).join(ProductTag).filter(
+                        ProductTag.tag.like(f'%{word}%')
+                    ).order_by(Product.id).limit(50).all()  # 限制数量
+                    
+                    products.extend(matched_products)
+            
+            # 去重
+            seen_ids = set()
+            unique_products = []
+            for product in products:
+                if product.id not in seen_ids:
+                    seen_ids.add(product.id)
+                    unique_products.append(product)
+            
+            # 如果没有标签匹配，则选择一些商品作为候选
+            if not unique_products:
+                unique_products = Product.query.order_by(Product.id).limit(20).all()
+            
+            # 构建结果
+            results = []
+            for product in unique_products[:top_k]:
+                results.append({
+                    'product_id': product.id,
+                    'product_name': product.name,
+                    'similarity': 0.5  # 降级搜索给一个固定相似度
+                })
+            
+            logger.info(f"降级搜索 '{query}' 找到 {len(results)} 个商品")
+            return results
+            
+        except Exception as e:
+            logger.error(f"降级搜索失败: {str(e)}")
+            return []
+    
+    def get_statistics(self) -> Dict:
+        """获取推荐算法统计信息"""
         try:
             total_products = Product.query.count()
-            total_users = User.query.count()
-            total_interactions = UserInteraction.query.count()
-            cache_entries = RecommendationCache.query.count()
+            products_with_vectors = Product.query.filter(Product.embedding.isnot(None)).count()
+            total_tags = ProductTag.query.count()
+            unique_tags = db.session.query(ProductTag.tag).distinct().count()
+            tag_vectors_count = TagVector.query.count()
             
             return {
                 'total_products': total_products,
-                'total_users': total_users,
-                'total_interactions': total_interactions,
-                'cache_entries': cache_entries,
-                'service_status': 'running',
-                'algorithm_status': 'mock_mode'  # 标识当前为模拟模式
+                'products_with_vectors': products_with_vectors,
+                'vector_coverage': products_with_vectors / total_products if total_products > 0 else 0,
+                'total_tags': total_tags,
+                'unique_tags': unique_tags,
+                'tag_vectors_count': tag_vectors_count,
+                'tag_vector_coverage': tag_vectors_count / unique_tags if unique_tags > 0 else 0
             }
+            
         except Exception as e:
-            logger.error(f"Error getting recommendation stats: {str(e)}")
-            return {
-                'error': str(e),
-                'service_status': 'error'
-            }
+            logger.error(f"获取统计信息失败: {str(e)}")
+            return {}
