@@ -43,19 +43,6 @@
                 @keyup.enter="performSearch"
                 @input="onSearchInput"
               />
-              
-              <!-- 搜索建议 -->
-              <div v-if="showSuggestions && suggestions.length > 0" class="suggestions">
-                <div
-                  v-for="suggestion in suggestions"
-                  :key="suggestion.text"
-                  class="suggestion-item"
-                  @click="selectSuggestion(suggestion.text)"
-                >
-                  <i class="suggestion-icon">🔍</i>
-                  {{ suggestion.text }}
-                </div>
-              </div>
             </div>
             
             <!-- 搜索按钮组 -->
@@ -112,9 +99,6 @@
               </div>
               <div class="product-info">
                 <h3 class="product-name">{{ product.name }}</h3>
-                <div class="product-category">
-                  <span class="category-tag">{{ product.category_name || '未分类' }}</span>
-                </div>
                 <div class="product-tags">
                   <span
                     v-for="tag in product.tags.slice(0, 5)"
@@ -181,8 +165,7 @@ export default {
     const searchQuery = ref('')
     const searchType = ref('fuzzy')
     const searchResults = ref(null)
-    const suggestions = ref([])
-    const showSuggestions = ref(false)
+    // 提示列表功能已移除
     const loading = ref(false)
     
     // 搜索配置
@@ -193,24 +176,7 @@ export default {
     
     // 分类列表功能已移除
     
-    // 获取搜索建议
-    const fetchSuggestions = async (query) => {
-      if (query.length < 2) {
-        suggestions.value = []
-        return
-      }
-      
-      try {
-        const response = await axios.get('http://localhost:5001/api/v1/search/suggestions', {
-          params: { q: query }
-        })
-        if (response.data.success) {
-          suggestions.value = response.data.data
-        }
-      } catch (error) {
-        console.error('获取搜索建议失败:', error)
-      }
-    }
+    // 搜索建议功能已移除
     
     // 执行搜索
     const performSearch = async () => {
@@ -220,7 +186,6 @@ export default {
       }
       
       loading.value = true
-      showSuggestions.value = false
       
       try {
         const params = {
@@ -261,16 +226,10 @@ export default {
     
     // 搜索输入处理
     const onSearchInput = () => {
-      showSuggestions.value = true
-      fetchSuggestions(searchQuery.value)
+      // 输入事件处理（提示列表功能已移除）
     }
     
-    // 选择搜索建议
-    const selectSuggestion = (text) => {
-      searchQuery.value = text
-      showSuggestions.value = false
-      performSearch()
-    }
+    // 选择搜索建议功能已移除
     
     // 分类变化处理已移除
     
@@ -317,15 +276,12 @@ export default {
       searchQuery,
       searchType,
       searchResults,
-      suggestions,
-      showSuggestions,
       loading,
       searchConfig,
       performSearch,
       performFuzzySearch,
       performSemanticSearch,
       onSearchInput,
-      selectSuggestion,
       goToPage,
       getProductImage,
       handleImageError
@@ -547,40 +503,7 @@ export default {
   color: rgba(255, 255, 255, 0.5);
 }
 
-/* 搜索建议 */
-.suggestions {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: rgba(20, 20, 20, 0.95);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 255, 255, 0.2);
-  border-radius: 15px;
-  margin-top: 10px;
-  max-height: 200px;
-  overflow-y: auto;
-  z-index: 1000;
-}
-
-.suggestion-item {
-  padding: 15px 20px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  transition: all 0.3s ease;
-  color: #ffffff;
-}
-
-.suggestion-item:hover {
-  background: rgba(0, 255, 255, 0.1);
-  color: #00ffff;
-}
-
-.suggestion-icon {
-  opacity: 0.7;
-}
+/* 搜索建议功能已移除 */
 
 /* 搜索按钮组 */
 .search-buttons {

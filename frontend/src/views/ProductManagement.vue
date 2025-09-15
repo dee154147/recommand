@@ -84,8 +84,6 @@
               </template>
             </el-table-column>
             
-            <el-table-column prop="category_name" label="分类" width="120" />
-            
             <el-table-column label="价格" width="120">
               <template #default="{ row }">
                 <span class="price">¥{{ row.price }}</span>

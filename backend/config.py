@@ -9,7 +9,7 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
     
     # 数据库配置
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///recommendation.db'
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'postgresql://liuzhichao@localhost:5432/recommendation_db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Redis配置（用于缓存）
@@ -27,7 +27,7 @@ class Config:
 class DevelopmentConfig(Config):
     """开发环境配置"""
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or 'sqlite:///recommendation_dev.db'
+    SQLALCHEMY_DATABASE_URI = 'postgresql://liuzhichao@localhost:5432/recommendation_db'
 
 class ProductionConfig(Config):
     """生产环境配置"""

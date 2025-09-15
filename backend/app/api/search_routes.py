@@ -143,22 +143,20 @@ def fuzzy_search(query: str, page: int, per_page: int) -> Dict:
 def semantic_search(query: str, page: int, per_page: int, timeout: int = 30) -> Dict:
     """
     语义搜索
-    使用推荐算法的向量相似度匹配
+    使用pgvector进行全量向量相似度匹配
     """
     try:
-        # 使用推荐算法进行语义搜索
-        from app.services.recommendation_service import RecommendationService
-        recommendation_service = RecommendationService()
+        # 使用pgvector推荐服务进行语义搜索
+        from app.services.pgvector_recommendation_service import PgVectorRecommendationService
+        recommendation_service = PgVectorRecommendationService()
         
-        # 使用推荐算法进行语义搜索（增加超时时间）
-        semantic_results = recommendation_service.semantic_search(query, top_k=per_page * 3, timeout=timeout)
+        # 使用pgvector进行全量语义搜索
+        semantic_results = recommendation_service.semantic_search(query, top_k=per_page * 3)
         
         if not semantic_results:
             # 如果没有语义搜索结果，降级到模糊搜索
             logger.info(f"语义搜索无结果，降级到模糊搜索: {query}")
             return fuzzy_search(query, page, per_page)
-        
-        # 去掉分类过滤逻辑
         
         # 分页处理
         start_idx = (page - 1) * per_page
@@ -168,29 +166,28 @@ def semantic_search(query: str, page: int, per_page: int, timeout: int = 30) -> 
         # 构建返回结果
         products = []
         for result in page_results:
-            product = Product.query.get(result['product_id'])
-            if product:
-                # 获取商品标签
-                product_tags = db.session.query(ProductTag).filter(
-                    ProductTag.product_id == product.id
-                ).all()
-                
-                # 获取分类信息
-                category = db.session.query(Category).filter(
-                    Category.id == product.category_id
-                ).first()
-                
-                product_data = {
-                    'id': product.id,
-                    'name': product.name,
-                    'image_url': product.image_url,
-                    'price': float(product.price) if product.price else 0.0,
-                    'category_name': category.name if category else '未分类',
-                    'category_id': product.category_id,
-                    'tags': [pt.tag for pt in product_tags],
-                    'similarity': result['similarity']  # 添加相似度分数
-                }
-                products.append(product_data)
+            # 获取商品标签
+            product_tags = db.session.query(ProductTag).filter(
+                ProductTag.product_id == result['id']
+            ).all()
+            
+            # 获取分类信息
+            category = db.session.query(Category).filter(
+                Category.id == result['category_id']
+            ).first()
+            
+            product_data = {
+                'id': result['id'],
+                'name': result['name'],
+                'image_url': result['image_url'],
+                'price': float(result['price']) if result['price'] else 0.0,
+                'category_name': category.name if category else '未分类',
+                'category_id': result['category_id'],
+                'tags': result['tags'],
+                'similarity': result['similarity'],  # 添加相似度分数
+                'distance': result['distance']  # 添加距离分数
+            }
+            products.append(product_data)
         
         # 计算分页信息
         total_results = len(semantic_results)
@@ -208,7 +205,8 @@ def semantic_search(query: str, page: int, per_page: int, timeout: int = 30) -> 
             },
             'search_info': {
                 'query': query,
-                'type': 'semantic'
+                'type': 'semantic',
+                'total_searched': total_results  # 添加搜索总数信息
             }
         }
         
@@ -248,7 +246,7 @@ def get_categories():
     获取所有商品分类
     """
     try:
-        categories = db.session.query(Category).all()
+        categories = Category.query.all()
         
         category_list = []
         for category in categories:
