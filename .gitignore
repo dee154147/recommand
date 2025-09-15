@@ -198,6 +198,9 @@ model/
 *.bak
 *.backup
 *.old
+backups/
+*.dump
+*.sql
 
 # Temporary files
 *.tmp
