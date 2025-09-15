@@ -12,6 +12,7 @@ from sqlalchemy import text
 from app import db
 from app.models import Product, Category, ProductTag
 from app.utils.text_processing import TextProcessor
+from app.utils.hybrid_text_processing import HybridVectorTextProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,13 @@ class PgVectorRecommendationService:
         """初始化推荐服务"""
         self.text_processor = TextProcessor()
         self.word_vectors = self.load_word_vectors()
+        self.hybrid_processor = None
+        
+        # 如果词向量加载成功，初始化混合分词器
+        if self.word_vectors:
+            self.hybrid_processor = HybridVectorTextProcessor(self.word_vectors)
+            logger.info("混合分词器初始化完成")
+        
         logger.info("PgVector推荐服务初始化完成")
     
     def load_word_vectors(self) -> Dict[str, np.ndarray]:
@@ -58,15 +66,21 @@ class PgVectorRecommendationService:
             
             logger.info(f"计算查询向量: '{query}'")
             
-            # 使用文本处理器处理查询
-            words = self.text_processor.segment_text(query)
-            logger.info(f"分词结果: {words}")
-            
-            # 过滤有意义的词
-            meaningful_words = []
-            for word in words:
-                if self.text_processor._is_meaningful_word(word):
-                    meaningful_words.append(word)
+            # 使用混合分词器处理查询
+            if self.hybrid_processor:
+                words = self.hybrid_processor.segment_text(query)
+                logger.info(f"混合分词结果: {words}")
+                meaningful_words = words  # 混合分词器已经过滤了有意义的词
+            else:
+                # 降级到原始分词器
+                words = self.text_processor.segment_text(query)
+                logger.info(f"原始分词结果: {words}")
+                
+                # 过滤有意义的词
+                meaningful_words = []
+                for word in words:
+                    if self.text_processor._is_meaningful_word(word):
+                        meaningful_words.append(word)
             
             logger.info(f"有意义的词: {meaningful_words}")
             

@@ -18,6 +18,7 @@ import time
 from app import db
 from app.models import Product, ProductTag, TagVector, Category
 from app.utils.text_processing import TextProcessor
+from app.utils.hybrid_text_processing import HybridVectorTextProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,7 @@ class RecommendationService:
             self.model_path = os.path.join(project_root, 'model', 'Tencent_AILab_ChineseEmbedding.bin')
             self.word_vectors = None
             self.text_processor = TextProcessor()
+            self.hybrid_processor = None  # 将在词向量加载后初始化
             self.vector_dim = 200  # Tencent词向量维度
             
             # 查询结果缓存
@@ -62,6 +64,11 @@ class RecommendationService:
             logger.info("正在加载Tencent词向量模型...")
             self.word_vectors = KeyedVectors.load(self.model_path, mmap='r')
             logger.info(f"词向量模型加载成功，词汇量: {len(self.word_vectors)}")
+            
+            # 初始化混合分词器
+            self.hybrid_processor = HybridVectorTextProcessor(self.word_vectors)
+            logger.info("混合分词器初始化完成")
+            
             return True
             
         except Exception as e:
@@ -381,12 +388,18 @@ class RecommendationService:
                 logger.warning("词向量模型未加载，使用降级策略")
                 return self._fallback_tag_search(query, top_k)
             
-            # 对查询进行分词
-            query_words = self.text_processor.segment_text(query)
-            logger.info(f"查询 '{query}' 分词结果: {query_words}")
+            # 使用混合分词器进行分词
+            if self.hybrid_processor:
+                query_words = self.hybrid_processor.segment_text(query)
+                logger.info(f"查询 '{query}' 混合分词结果: {query_words}")
+            else:
+                # 降级到原始分词器
+                query_words = self.text_processor.segment_text(query)
+                logger.info(f"查询 '{query}' 原始分词结果: {query_words}")
+            
             if not query_words:
-                logger.warning(f"查询 '{query}' 分词结果为空")
-                return []
+                logger.warning(f"查询 '{query}' 分词结果为空，降级到模糊搜索")
+                return self._fallback_tag_search(query, top_k)
             
             # 计算查询向量
             query_vectors = []

@@ -262,19 +262,63 @@ export default {
       loading.value = true
       
       try {
-        const params = {
-          q: searchQuery.value.trim(),
-          type: searchType.value,
-          page: searchConfig.page,
-          per_page: searchConfig.per_page
-        }
+        let response
         
-        const response = await axios.get('http://localhost:5001/api/v1/search/products', { params })
-        
-        if (response.data.success) {
-          searchResults.value = response.data.data
+        if (searchType.value === 'semantic') {
+          // 语义搜索
+          const params = {
+            q: searchQuery.value.trim(),
+            top_k: searchConfig.per_page
+          }
+          response = await axios.get('http://localhost:5002/api/v1/recommendation/semantic-search', { params })
+          
+          if (response.data.success) {
+            // 转换语义搜索结果格式
+            const semanticResults = response.data.data.results.map(item => ({
+              id: item.id,
+              name: item.name,
+              description: item.description,
+              price: item.price,
+              category_id: item.category_id,
+              image_url: item.image_url,
+              similarity: item.similarity,
+              tags: item.tags || []
+            }))
+            
+            searchResults.value = {
+              products: semanticResults,
+              pagination: {
+                total: semanticResults.length,
+                page: 1,
+                per_page: semanticResults.length,
+                pages: 1,
+                has_prev: false,
+                has_next: false
+              },
+              search_info: {
+                query: searchQuery.value.trim(),
+                type: 'semantic',
+                implementation: response.data.data.implementation
+              }
+            }
+          } else {
+            alert('语义搜索失败: ' + response.data.error)
+          }
         } else {
-          alert('搜索失败: ' + response.data.message)
+          // 模糊搜索
+          const params = {
+            q: searchQuery.value.trim(),
+            type: searchType.value,
+            page: searchConfig.page,
+            per_page: searchConfig.per_page
+          }
+          response = await axios.get('http://localhost:5002/api/v1/search/products', { params })
+          
+          if (response.data.success) {
+            searchResults.value = response.data.data
+          } else {
+            alert('搜索失败: ' + response.data.message)
+          }
         }
       } catch (error) {
         console.error('搜索失败:', error)
@@ -767,6 +811,9 @@ export default {
   backdrop-filter: blur(20px);
   transition: all 0.3s ease;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .product-card:hover {
@@ -807,6 +854,9 @@ export default {
 
 .product-info {
   padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 .product-name {
@@ -819,6 +869,7 @@ export default {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .product-category {
@@ -836,6 +887,11 @@ export default {
 
 .product-tags {
   margin-bottom: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  flex-grow: 1;
+  align-items: flex-start;
 }
 
 .tag {
@@ -872,7 +928,7 @@ export default {
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  margin-top: 1rem;
+  margin-top: auto;
   text-transform: uppercase;
   letter-spacing: 1px;
   box-shadow: 0 4px 15px rgba(255, 107, 107, 0.5);
@@ -882,6 +938,7 @@ export default {
   display: flex !important;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .similar-btn:hover {
