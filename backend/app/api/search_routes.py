@@ -12,7 +12,6 @@ import signal
 import time
 
 from ..models import db, Product, ProductTag, Category
-from ..utils.response_utils import success_response, error_response
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +32,7 @@ def search_products():
         # category_id = request.args.get('category_id', type=int)  # 去掉分类筛选
         
         if not query:
-            return error_response("搜索关键词不能为空", 400)
+            return jsonify({'success': False, 'error': "搜索关键词不能为空"}), 400
         
         # 分页参数验证
         if page < 1:
@@ -54,11 +53,11 @@ def search_products():
         query_time = time.time() - start_time
         logger.info(f"搜索查询耗时: {query_time:.2f}秒, 类型: {search_type}, 关键词: {query}")
         
-        return success_response(results, "搜索完成")
+        return jsonify({'success': True, 'data': results, 'message': "搜索完成"})
         
     except Exception as e:
         logger.error(f"搜索失败: {e}")
-        return error_response(f"搜索失败: {str(e)}", 500)
+        return jsonify({'success': False, 'error': f"搜索失败: {str(e)}"}), 500
 
 def fuzzy_search(query: str, page: int, per_page: int) -> Dict:
     """
@@ -259,11 +258,11 @@ def get_categories():
                 ).count()
             })
         
-        return success_response(category_list, "获取分类成功")
+        return jsonify({'success': True, 'data': category_list, 'message': "获取分类成功"})
         
     except Exception as e:
         logger.error(f"获取分类失败: {e}")
-        return error_response(f"获取分类失败: {str(e)}", 500)
+        return jsonify({'success': False, 'error': f"获取分类失败: {str(e)}"}), 500
 
 @search_bp.route('/suggestions', methods=['GET'])
 def get_search_suggestions():
@@ -275,7 +274,7 @@ def get_search_suggestions():
         query = request.args.get('q', '').strip()
         
         if not query or len(query) < 2:
-            return success_response([], "搜索建议为空")
+            return jsonify({'success': True, 'data': [], 'message': "搜索建议为空"})
         
         suggestions = []
         
@@ -301,8 +300,8 @@ def get_search_suggestions():
                 'type': 'product'
             })
         
-        return success_response(suggestions, "获取搜索建议成功")
+        return jsonify({'success': True, 'data': suggestions, 'message': "获取搜索建议成功"})
         
     except Exception as e:
         logger.error(f"获取搜索建议失败: {e}")
-        return error_response(f"获取搜索建议失败: {str(e)}", 500)
+        return jsonify({'success': False, 'error': f"获取搜索建议失败: {str(e)}"}), 500

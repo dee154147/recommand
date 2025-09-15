@@ -318,7 +318,10 @@
             backdrop-filter: blur(10px);
             cursor: pointer;
             position: relative;
-            overflow: hidden;
+            overflow: visible;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
         }
 
         .product-card:hover {
@@ -367,6 +370,19 @@
 
         .product-info {
             text-align: left;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            justify-content: space-between;
+            position: relative;
+            z-index: 5;
+        }
+
+        .product-details {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
         }
 
         .product-name {
@@ -379,6 +395,7 @@
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
+            min-height: 2.8rem; /* 确保标题区域高度一致 */
         }
 
         .product-description {
@@ -390,6 +407,7 @@
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
+            min-height: 2.7rem; /* 确保描述区域高度一致 */
         }
 
         .product-price {
@@ -397,6 +415,7 @@
             font-weight: 700;
             color: #00ffff;
             margin-bottom: 1rem;
+            min-height: 1.5rem; /* 确保价格区域高度一致 */
         }
 
         .product-tags {
@@ -412,6 +431,274 @@
             border-radius: 15px;
             font-size: 0.8rem;
             border: 1px solid rgba(0, 255, 255, 0.2);
+        }
+
+        /* 相似商品按钮 */
+        .similar-btn {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            background: linear-gradient(45deg, #ff6b6b, #ffa500) !important;
+            color: #ffffff !important;
+            border: 2px solid #ff6b6b !important;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.5);
+            position: relative;
+            z-index: 10;
+            min-height: 50px;
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .similar-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.6);
+            background: linear-gradient(45deg, #ff5252, #ff9800) !important;
+            border-color: #ff5252 !important;
+        }
+
+        .similar-btn:active {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.5);
+        }
+
+        /* 调试样式 - 确保按钮可见 */
+        .similar-btn::before {
+            content: "🔍";
+            margin-right: 8px;
+            font-size: 1.2em;
+        }
+
+        .similar-btn::after {
+            content: "";
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #ff6b6b, #ffa500);
+            border-radius: 14px;
+            z-index: -1;
+            opacity: 0.3;
+        }
+
+        /* 相似商品弹窗 */
+        .similar-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .similar-modal.show {
+            display: flex;
+        }
+
+        .similar-modal-content {
+            background: rgba(10, 10, 10, 0.95);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 1000px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .similar-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+        }
+
+        .similar-modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .similar-modal-close {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .similar-modal-close:hover {
+            color: #ff4444;
+            background: rgba(255, 68, 68, 0.1);
+        }
+
+        .reference-product {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .reference-product-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #00ffff;
+            margin-bottom: 1rem;
+        }
+
+        .reference-product-info {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .reference-product-image {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(45deg, rgba(0, 255, 255, 0.1), rgba(255, 0, 255, 0.1));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .reference-product-details {
+            flex: 1;
+        }
+
+        .reference-product-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+        }
+
+        .reference-product-price {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #00ffff;
+        }
+
+        .similar-products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .similar-product-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 1rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .similar-product-card:hover {
+            transform: translateY(-3px);
+            border-color: #00ffff;
+            box-shadow: 0 10px 25px rgba(0, 255, 255, 0.2);
+        }
+
+        .similar-product-image {
+            width: 100%;
+            height: 120px;
+            background: linear-gradient(45deg, rgba(0, 255, 255, 0.1), rgba(255, 0, 255, 0.1));
+            border-radius: 8px;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .similar-product-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .similar-product-price {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #00ffff;
+            margin-bottom: 0.5rem;
+        }
+
+        .similarity-score {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6);
+            background: rgba(0, 255, 255, 0.1);
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+            display: inline-block;
+        }
+
+        .similar-modal-footer {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(0, 255, 255, 0.1);
+            text-align: center;
+        }
+
+        .similar-modal-btn {
+            padding: 0.8rem 2rem;
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            color: #ffffff;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0 0.5rem;
+        }
+
+        .similar-modal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 255, 255, 0.4);
+        }
+
+        .similar-modal-btn.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+        }
+
+        .similar-modal-btn.secondary:hover {
+            background: rgba(0, 255, 255, 0.1);
         }
 
         /* 分页 */
@@ -641,14 +928,19 @@
                             <img src="https://via.placeholder.com/280x200/00ffff/ffffff?text=商品图片" alt="商品图片">
                         </div>
                         <div class="product-info">
-                            <h3 class="product-name">iPhone 15 Pro Max 256GB 深空黑色</h3>
-                            <p class="product-description">苹果最新旗舰手机，搭载A17 Pro芯片，支持5G网络，配备4800万像素主摄像头</p>
-                            <div class="product-price">¥9,999</div>
-                            <div class="product-tags">
-                                <span class="product-tag">智能手机</span>
-                                <span class="product-tag">苹果</span>
-                                <span class="product-tag">5G</span>
+                            <div class="product-details">
+                                <h3 class="product-name">iPhone 15 Pro Max 256GB 深空黑色</h3>
+                                <p class="product-description">苹果最新旗舰手机，搭载A17 Pro芯片，支持5G网络，配备4800万像素主摄像头</p>
+                                <div class="product-price">¥9,999</div>
+                                <div class="product-tags">
+                                    <span class="product-tag">智能手机</span>
+                                    <span class="product-tag">苹果</span>
+                                    <span class="product-tag">5G</span>
+                                </div>
                             </div>
+                            <button class="similar-btn" onclick="showSimilarProducts('iPhone 15 Pro Max 256GB 深空黑色', '¥9,999', 'https://via.placeholder.com/280x200/00ffff/ffffff?text=商品图片', 390573)">
+                                查找相似商品
+                            </button>
                         </div>
                     </div>
 
@@ -657,14 +949,19 @@
                             <img src="https://via.placeholder.com/280x200/ff00ff/ffffff?text=商品图片" alt="商品图片">
                         </div>
                         <div class="product-info">
-                            <h3 class="product-name">Nike Air Max 270 运动鞋</h3>
-                            <p class="product-description">经典运动鞋款，舒适透气，适合日常运动和休闲穿着</p>
-                            <div class="product-price">¥899</div>
-                            <div class="product-tags">
-                                <span class="product-tag">运动鞋</span>
-                                <span class="product-tag">Nike</span>
-                                <span class="product-tag">休闲</span>
+                            <div class="product-details">
+                                <h3 class="product-name">Nike Air Max 270 运动鞋</h3>
+                                <p class="product-description">经典运动鞋款，舒适透气，适合日常运动和休闲穿着</p>
+                                <div class="product-price">¥899</div>
+                                <div class="product-tags">
+                                    <span class="product-tag">运动鞋</span>
+                                    <span class="product-tag">Nike</span>
+                                    <span class="product-tag">休闲</span>
+                                </div>
                             </div>
+                            <button class="similar-btn" onclick="showSimilarProducts('Nike Air Max 270 运动鞋', '¥899', 'https://via.placeholder.com/280x200/ff00ff/ffffff?text=商品图片', 390610)">
+                                查找相似商品
+                            </button>
                         </div>
                     </div>
 
@@ -673,14 +970,19 @@
                             <img src="https://via.placeholder.com/280x200/00ff00/ffffff?text=商品图片" alt="商品图片">
                         </div>
                         <div class="product-info">
-                            <h3 class="product-name">MacBook Pro 14英寸 M3芯片</h3>
-                            <p class="product-description">专业级笔记本电脑，强大的M3芯片，适合专业创作和开发工作</p>
-                            <div class="product-price">¥15,999</div>
-                            <div class="product-tags">
-                                <span class="product-tag">笔记本电脑</span>
-                                <span class="product-tag">苹果</span>
-                                <span class="product-tag">专业</span>
+                            <div class="product-details">
+                                <h3 class="product-name">MacBook Pro 14英寸 M3芯片</h3>
+                                <p class="product-description">专业级笔记本电脑，强大的M3芯片，适合专业创作和开发工作</p>
+                                <div class="product-price">¥15,999</div>
+                                <div class="product-tags">
+                                    <span class="product-tag">笔记本电脑</span>
+                                    <span class="product-tag">苹果</span>
+                                    <span class="product-tag">专业</span>
+                                </div>
                             </div>
+                            <button class="similar-btn" onclick="showSimilarProducts('MacBook Pro 14英寸 M3芯片', '¥15,999', 'https://via.placeholder.com/280x200/00ff00/ffffff?text=商品图片', 390666)">
+                                查找相似商品
+                            </button>
                         </div>
                     </div>
 
@@ -689,14 +991,19 @@
                             <img src="https://via.placeholder.com/280x200/ff6b6b/ffffff?text=商品图片" alt="商品图片">
                         </div>
                         <div class="product-info">
-                            <h3 class="product-name">Sony WH-1000XM5 降噪耳机</h3>
-                            <p class="product-description">业界领先的降噪技术，30小时续航，支持快速充电</p>
-                            <div class="product-price">¥2,299</div>
-                            <div class="product-tags">
-                                <span class="product-tag">耳机</span>
-                                <span class="product-tag">降噪</span>
-                                <span class="product-tag">无线</span>
+                            <div class="product-details">
+                                <h3 class="product-name">Sony WH-1000XM5 降噪耳机</h3>
+                                <p class="product-description">业界领先的降噪技术，30小时续航，支持快速充电</p>
+                                <div class="product-price">¥2,299</div>
+                                <div class="product-tags">
+                                    <span class="product-tag">耳机</span>
+                                    <span class="product-tag">降噪</span>
+                                    <span class="product-tag">无线</span>
+                                </div>
                             </div>
+                            <button class="similar-btn" onclick="showSimilarProducts('Sony WH-1000XM5 降噪耳机', '¥2,299', 'https://via.placeholder.com/280x200/ff6b6b/ffffff?text=商品图片', 390667)">
+                                查找相似商品
+                            </button>
                         </div>
                     </div>
 
@@ -705,14 +1012,19 @@
                             <img src="https://via.placeholder.com/280x200/ffa500/ffffff?text=商品图片" alt="商品图片">
                         </div>
                         <div class="product-info">
-                            <h3 class="product-name">iPad Air 第5代 64GB</h3>
-                            <p class="product-description">轻薄便携的平板电脑，支持Apple Pencil，适合学习和创作</p>
-                            <div class="product-price">¥4,399</div>
-                            <div class="product-tags">
-                                <span class="product-tag">平板电脑</span>
-                                <span class="product-tag">苹果</span>
-                                <span class="product-tag">便携</span>
+                            <div class="product-details">
+                                <h3 class="product-name">iPad Air 第5代 64GB</h3>
+                                <p class="product-description">轻薄便携的平板电脑，支持Apple Pencil，适合学习和创作</p>
+                                <div class="product-price">¥4,399</div>
+                                <div class="product-tags">
+                                    <span class="product-tag">平板电脑</span>
+                                    <span class="product-tag">苹果</span>
+                                    <span class="product-tag">便携</span>
+                                </div>
                             </div>
+                            <button class="similar-btn" onclick="showSimilarProducts('iPad Air 第5代 64GB', '¥4,399', 'https://via.placeholder.com/280x200/ffa500/ffffff?text=商品图片', 390758)">
+                                查找相似商品
+                            </button>
                         </div>
                     </div>
 
@@ -721,14 +1033,19 @@
                             <img src="https://via.placeholder.com/280x200/9c27b0/ffffff?text=商品图片" alt="商品图片">
                         </div>
                         <div class="product-info">
-                            <h3 class="product-name">Dyson V15 Detect 吸尘器</h3>
-                            <p class="product-description">智能吸尘器，激光探测技术，深度清洁地毯和硬质地面</p>
-                            <div class="product-price">¥4,999</div>
-                            <div class="product-tags">
-                                <span class="product-tag">吸尘器</span>
-                                <span class="product-tag">智能</span>
-                                <span class="product-tag">清洁</span>
+                            <div class="product-details">
+                                <h3 class="product-name">Dyson V15 Detect 吸尘器</h3>
+                                <p class="product-description">智能吸尘器，激光探测技术，深度清洁地毯和硬质地面</p>
+                                <div class="product-price">¥4,999</div>
+                                <div class="product-tags">
+                                    <span class="product-tag">吸尘器</span>
+                                    <span class="product-tag">智能</span>
+                                    <span class="product-tag">清洁</span>
+                                </div>
                             </div>
+                            <button class="similar-btn" onclick="showSimilarProducts('Dyson V15 Detect 吸尘器', '¥4,999', 'https://via.placeholder.com/280x200/9c27b0/ffffff?text=商品图片', 390870)">
+                                查找相似商品
+                            </button>
                         </div>
                     </div>
 
@@ -737,14 +1054,19 @@
                             <img src="https://via.placeholder.com/280x200/2196f3/ffffff?text=商品图片" alt="商品图片">
                         </div>
                         <div class="product-info">
-                            <h3 class="product-name">Samsung Galaxy S24 Ultra</h3>
-                            <p class="product-description">三星旗舰手机，200MP主摄像头，S Pen支持，AI功能丰富</p>
-                            <div class="product-price">¥8,999</div>
-                            <div class="product-tags">
-                                <span class="product-tag">智能手机</span>
-                                <span class="product-tag">三星</span>
-                                <span class="product-tag">AI</span>
+                            <div class="product-details">
+                                <h3 class="product-name">Samsung Galaxy S24 Ultra</h3>
+                                <p class="product-description">三星旗舰手机，200MP主摄像头，S Pen支持，AI功能丰富</p>
+                                <div class="product-price">¥8,999</div>
+                                <div class="product-tags">
+                                    <span class="product-tag">智能手机</span>
+                                    <span class="product-tag">三星</span>
+                                    <span class="product-tag">AI</span>
+                                </div>
                             </div>
+                            <button class="similar-btn" onclick="showSimilarProducts('Samsung Galaxy S24 Ultra', '¥8,999', 'https://via.placeholder.com/280x200/2196f3/ffffff?text=商品图片', 390898)">
+                                查找相似商品
+                            </button>
                         </div>
                     </div>
 
@@ -753,14 +1075,19 @@
                             <img src="https://via.placeholder.com/280x200/4caf50/ffffff?text=商品图片" alt="商品图片">
                         </div>
                         <div class="product-info">
-                            <h3 class="product-name">AirPods Pro 第2代</h3>
-                            <p class="product-description">主动降噪无线耳机，空间音频，自适应透明模式</p>
-                            <div class="product-price">¥1,899</div>
-                            <div class="product-tags">
-                                <span class="product-tag">耳机</span>
-                                <span class="product-tag">苹果</span>
-                                <span class="product-tag">降噪</span>
+                            <div class="product-details">
+                                <h3 class="product-name">AirPods Pro 第2代</h3>
+                                <p class="product-description">主动降噪无线耳机，空间音频，自适应透明模式</p>
+                                <div class="product-price">¥1,899</div>
+                                <div class="product-tags">
+                                    <span class="product-tag">耳机</span>
+                                    <span class="product-tag">苹果</span>
+                                    <span class="product-tag">降噪</span>
+                                </div>
                             </div>
+                            <button class="similar-btn" onclick="showSimilarProducts('AirPods Pro 第2代', '¥1,899', 'https://via.placeholder.com/280x200/4caf50/ffffff?text=商品图片', 390920)">
+                                查找相似商品
+                            </button>
                         </div>
                     </div>
 
@@ -769,14 +1096,19 @@
                             <img src="https://via.placeholder.com/280x200/e91e63/ffffff?text=商品图片" alt="商品图片">
                         </div>
                         <div class="product-info">
-                            <h3 class="product-name">Tesla Model Y 长续航版</h3>
-                            <p class="product-description">纯电动SUV，续航里程660公里，自动驾驶功能</p>
-                            <div class="product-price">¥299,900</div>
-                            <div class="product-tags">
-                                <span class="product-tag">电动车</span>
-                                <span class="product-tag">SUV</span>
-                                <span class="product-tag">自动驾驶</span>
+                            <div class="product-details">
+                                <h3 class="product-name">Tesla Model Y 长续航版</h3>
+                                <p class="product-description">纯电动SUV，续航里程660公里，自动驾驶功能</p>
+                                <div class="product-price">¥299,900</div>
+                                <div class="product-tags">
+                                    <span class="product-tag">电动车</span>
+                                    <span class="product-tag">SUV</span>
+                                    <span class="product-tag">自动驾驶</span>
+                                </div>
                             </div>
+                            <button class="similar-btn" onclick="showSimilarProducts('Tesla Model Y 长续航版', '¥299,900', 'https://via.placeholder.com/280x200/e91e63/ffffff?text=商品图片', 390960)">
+                                查找相似商品
+                            </button>
                         </div>
                     </div>
 
@@ -785,14 +1117,19 @@
                             <img src="https://via.placeholder.com/280x200/ff9800/ffffff?text=商品图片" alt="商品图片">
                         </div>
                         <div class="product-info">
-                            <h3 class="product-name">Apple Watch Series 9</h3>
-                            <p class="product-description">智能手表，健康监测，GPS定位，防水设计</p>
-                            <div class="product-price">¥2,999</div>
-                            <div class="product-tags">
-                                <span class="product-tag">智能手表</span>
-                                <span class="product-tag">健康</span>
-                                <span class="product-tag">运动</span>
+                            <div class="product-details">
+                                <h3 class="product-name">Apple Watch Series 9</h3>
+                                <p class="product-description">智能手表，健康监测，GPS定位，防水设计</p>
+                                <div class="product-price">¥2,999</div>
+                                <div class="product-tags">
+                                    <span class="product-tag">智能手表</span>
+                                    <span class="product-tag">健康</span>
+                                    <span class="product-tag">运动</span>
+                                </div>
                             </div>
+                            <button class="similar-btn" onclick="showSimilarProducts('Apple Watch Series 9', '¥2,999', 'https://via.placeholder.com/280x200/ff9800/ffffff?text=商品图片', 391176)">
+                                查找相似商品
+                            </button>
                         </div>
                     </div>
 
@@ -801,14 +1138,19 @@
                             <img src="https://via.placeholder.com/280x200/795548/ffffff?text=商品图片" alt="商品图片">
                         </div>
                         <div class="product-info">
-                            <h3 class="product-name">Nintendo Switch OLED</h3>
-                            <p class="product-description">游戏主机，7英寸OLED屏幕，便携式设计</p>
-                            <div class="product-price">¥2,599</div>
-                            <div class="product-tags">
-                                <span class="product-tag">游戏机</span>
-                                <span class="product-tag">任天堂</span>
-                                <span class="product-tag">便携</span>
+                            <div class="product-details">
+                                <h3 class="product-name">Nintendo Switch OLED</h3>
+                                <p class="product-description">游戏主机，7英寸OLED屏幕，便携式设计</p>
+                                <div class="product-price">¥2,599</div>
+                                <div class="product-tags">
+                                    <span class="product-tag">游戏机</span>
+                                    <span class="product-tag">任天堂</span>
+                                    <span class="product-tag">便携</span>
+                                </div>
                             </div>
+                            <button class="similar-btn" onclick="showSimilarProducts('Nintendo Switch OLED', '¥2,599', 'https://via.placeholder.com/280x200/795548/ffffff?text=商品图片', 391515)">
+                                查找相似商品
+                            </button>
                         </div>
                     </div>
 
@@ -817,14 +1159,19 @@
                             <img src="https://via.placeholder.com/280x200/607d8b/ffffff?text=商品图片" alt="商品图片">
                         </div>
                         <div class="product-info">
-                            <h3 class="product-name">Canon EOS R6 Mark II</h3>
-                            <p class="product-description">专业相机，2420万像素，4K视频录制，防抖技术</p>
-                            <div class="product-price">¥18,999</div>
-                            <div class="product-tags">
-                                <span class="product-tag">相机</span>
-                                <span class="product-tag">专业</span>
-                                <span class="product-tag">4K</span>
+                            <div class="product-details">
+                                <h3 class="product-name">Canon EOS R6 Mark II</h3>
+                                <p class="product-description">专业相机，2420万像素，4K视频录制，防抖技术</p>
+                                <div class="product-price">¥18,999</div>
+                                <div class="product-tags">
+                                    <span class="product-tag">相机</span>
+                                    <span class="product-tag">专业</span>
+                                    <span class="product-tag">4K</span>
+                                </div>
                             </div>
+                            <button class="similar-btn" onclick="showSimilarProducts('Canon EOS R6 Mark II', '¥18,999', 'https://via.placeholder.com/280x200/607d8b/ffffff?text=商品图片', 391849)">
+                                查找相似商品
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -845,6 +1192,38 @@
             </section>
         </div>
     </main>
+
+    <!-- 相似商品弹窗 -->
+    <div class="similar-modal" id="similarModal">
+        <div class="similar-modal-content">
+            <div class="similar-modal-header">
+                <h2 class="similar-modal-title">相似商品推荐</h2>
+                <button class="similar-modal-close" onclick="closeSimilarModal()">&times;</button>
+            </div>
+            
+            <div class="reference-product">
+                <div class="reference-product-title">参考商品</div>
+                <div class="reference-product-info">
+                    <div class="reference-product-image" id="referenceImage">
+                        📱
+                    </div>
+                    <div class="reference-product-details">
+                        <div class="reference-product-name" id="referenceName">商品名称</div>
+                        <div class="reference-product-price" id="referencePrice">¥0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="similar-products-grid" id="similarProductsGrid">
+                <!-- 相似商品将在这里动态加载 -->
+            </div>
+
+            <div class="similar-modal-footer">
+                <button class="similar-modal-btn secondary" onclick="closeSimilarModal()">关闭</button>
+                <button class="similar-modal-btn" onclick="refreshSimilarProducts()">刷新推荐</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         // 搜索功能
@@ -935,6 +1314,237 @@
         });
 
         // 排序功能已移除，统一按相似度排序
+
+        // 相似商品功能
+        function showSimilarProducts(productName, productPrice, productImage, productId) {
+            console.log('showSimilarProducts called:', {productName, productPrice, productImage, productId});
+            
+            // 设置参考商品信息
+            document.getElementById('referenceName').textContent = productName;
+            document.getElementById('referencePrice').textContent = productPrice;
+            document.getElementById('referenceImage').innerHTML = getProductIcon(productName);
+            
+            // 显示弹窗
+            document.getElementById('similarModal').classList.add('show');
+            
+            // 加载相似商品
+            loadSimilarProducts(productId || 390573); // 使用商品ID，默认使用有向量的商品
+        }
+
+        function closeSimilarModal() {
+            document.getElementById('similarModal').classList.remove('show');
+        }
+
+        function getProductIcon(productName) {
+            if (productName.includes('iPhone') || productName.includes('Galaxy')) return '📱';
+            if (productName.includes('MacBook') || productName.includes('iPad')) return '💻';
+            if (productName.includes('AirPods') || productName.includes('耳机')) return '🎧';
+            if (productName.includes('Nike') || productName.includes('运动鞋')) return '👟';
+            if (productName.includes('Tesla') || productName.includes('电动车')) return '🚗';
+            if (productName.includes('Watch') || productName.includes('手表')) return '⌚';
+            if (productName.includes('Switch') || productName.includes('游戏机')) return '🎮';
+            if (productName.includes('Canon') || productName.includes('相机')) return '📷';
+            if (productName.includes('Dyson') || productName.includes('吸尘器')) return '🧹';
+            return '📦';
+        }
+
+        function loadSimilarProducts(productId) {
+            const grid = document.getElementById('similarProductsGrid');
+            
+            // 显示加载状态
+            grid.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
+                    <div class="loading-spinner" style="margin: 0 auto;"></div>
+                    <div class="loading-text">正在查找相似商品...</div>
+                </div>
+            `;
+
+            // 调用真实的API
+            fetch(`http://localhost:5002/api/v1/similar-products/${productId}?limit=12&threshold=0.0`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const similarProducts = data.data.similar_products.map(product => ({
+                            name: product.name,
+                            price: product.price ? `¥${product.price}` : '价格面议',
+                            similarity: `${Math.round(product.similarity * 100)}%`,
+                            icon: getProductIcon(product.name),
+                            productId: product.product_id
+                        }));
+                        displaySimilarProducts(similarProducts);
+                    } else {
+                        // API调用失败，显示错误信息
+                        grid.innerHTML = `
+                            <div style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
+                                <div style="color: #ff6b6b; font-size: 1.1rem; margin-bottom: 1rem;">
+                                    ❌ 获取相似商品失败
+                                </div>
+                                <div style="color: #888; font-size: 0.9rem;">
+                                    ${data.error || '未知错误'}
+                                </div>
+                                <button onclick="loadSimilarProducts(${productId})" style="
+                                    margin-top: 1rem; 
+                                    padding: 0.5rem 1rem; 
+                                    background: linear-gradient(45deg, #00ffff, #ff00ff);
+                                    border: none; 
+                                    border-radius: 8px; 
+                                    color: white; 
+                                    cursor: pointer;
+                                ">重试</button>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('API调用失败:', error);
+                    // 网络错误，显示错误信息
+                    grid.innerHTML = `
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
+                            <div style="color: #ff6b6b; font-size: 1.1rem; margin-bottom: 1rem;">
+                                ❌ 网络连接失败
+                            </div>
+                            <div style="color: #888; font-size: 0.9rem;">
+                                请检查网络连接或服务器状态
+                            </div>
+                            <button onclick="loadSimilarProducts(${productId})" style="
+                                margin-top: 1rem; 
+                                padding: 0.5rem 1rem; 
+                                background: linear-gradient(45deg, #00ffff, #ff00ff);
+                                border: none; 
+                                border-radius: 8px; 
+                                color: white; 
+                                cursor: pointer;
+                            ">重试</button>
+                        </div>
+                    `;
+                });
+        }
+
+        function generateSimilarProducts(referenceProduct) {
+            // 根据参考商品生成相似商品
+            const similarProducts = [];
+            
+            if (referenceProduct.includes('iPhone')) {
+                similarProducts.push(
+                    { name: 'iPhone 15 Pro 128GB 自然钛色', price: '¥8,999', similarity: '95%', icon: '📱' },
+                    { name: 'iPhone 14 Pro Max 256GB 深紫色', price: '¥7,999', similarity: '92%', icon: '📱' },
+                    { name: 'iPhone 13 Pro 128GB 石墨色', price: '¥6,999', similarity: '88%', icon: '📱' },
+                    { name: 'Samsung Galaxy S24 Ultra 256GB', price: '¥8,999', similarity: '85%', icon: '📱' },
+                    { name: 'OnePlus 12 256GB 黑色', price: '¥4,999', similarity: '82%', icon: '📱' },
+                    { name: 'Xiaomi 14 Pro 256GB 白色', price: '¥4,299', similarity: '80%', icon: '📱' }
+                );
+            } else if (referenceProduct.includes('MacBook')) {
+                similarProducts.push(
+                    { name: 'MacBook Pro 16英寸 M3 Max芯片', price: '¥25,999', similarity: '96%', icon: '💻' },
+                    { name: 'MacBook Air 13英寸 M3芯片', price: '¥8,999', similarity: '90%', icon: '💻' },
+                    { name: 'MacBook Pro 13英寸 M2芯片', price: '¥12,999', similarity: '87%', icon: '💻' },
+                    { name: 'Dell XPS 15 9530 笔记本电脑', price: '¥15,999', similarity: '83%', icon: '💻' },
+                    { name: 'HP Spectre x360 14英寸', price: '¥12,999', similarity: '80%', icon: '💻' },
+                    { name: 'Lenovo ThinkPad X1 Carbon', price: '¥13,999', similarity: '78%', icon: '💻' }
+                );
+            } else if (referenceProduct.includes('耳机')) {
+                similarProducts.push(
+                    { name: 'Bose QuietComfort 45 降噪耳机', price: '¥2,899', similarity: '94%', icon: '🎧' },
+                    { name: 'Sennheiser HD 660S 头戴式耳机', price: '¥3,299', similarity: '91%', icon: '🎧' },
+                    { name: 'Audio-Technica ATH-M50xBT2', price: '¥1,299', similarity: '88%', icon: '🎧' },
+                    { name: 'JBL Live 660NC 无线降噪耳机', price: '¥899', similarity: '85%', icon: '🎧' },
+                    { name: 'Beats Studio3 Wireless', price: '¥2,199', similarity: '82%', icon: '🎧' },
+                    { name: 'Marshall Monitor II ANC', price: '¥1,599', similarity: '80%', icon: '🎧' }
+                );
+            } else if (referenceProduct.includes('运动鞋')) {
+                similarProducts.push(
+                    { name: 'Nike Air Max 90 经典运动鞋', price: '¥999', similarity: '96%', icon: '👟' },
+                    { name: 'Adidas Ultraboost 22 跑步鞋', price: '¥1,299', similarity: '92%', icon: '👟' },
+                    { name: 'Nike React Infinity Run 3', price: '¥1,199', similarity: '89%', icon: '👟' },
+                    { name: 'New Balance 990v5 复古跑鞋', price: '¥1,499', similarity: '86%', icon: '👟' },
+                    { name: 'Puma RS-X Reinvention', price: '¥799', similarity: '83%', icon: '👟' },
+                    { name: 'Converse Chuck Taylor All Star', price: '¥399', similarity: '80%', icon: '👟' }
+                );
+            } else {
+                // 通用相似商品
+                similarProducts.push(
+                    { name: '相关商品 1', price: '¥999', similarity: '90%', icon: '📦' },
+                    { name: '相关商品 2', price: '¥1,299', similarity: '87%', icon: '📦' },
+                    { name: '相关商品 3', price: '¥799', similarity: '84%', icon: '📦' },
+                    { name: '相关商品 4', price: '¥1,599', similarity: '81%', icon: '📦' },
+                    { name: '相关商品 5', price: '¥599', similarity: '78%', icon: '📦' },
+                    { name: '相关商品 6', price: '¥1,999', similarity: '75%', icon: '📦' }
+                );
+            }
+            
+            return similarProducts;
+        }
+
+        function displaySimilarProducts(products) {
+            const grid = document.getElementById('similarProductsGrid');
+            
+            if (products.length === 0) {
+                grid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: rgba(255, 255, 255, 0.6);">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">😔</div>
+                        <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">暂无相似商品</div>
+                        <div>请尝试其他商品或稍后再试</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            grid.innerHTML = products.map(product => `
+                <div class="similar-product-card" onclick="selectSimilarProduct('${product.name}', '${product.price}')">
+                    <div class="similar-product-image">
+                        ${product.icon}
+                    </div>
+                    <div class="similar-product-name">${product.name}</div>
+                    <div class="similar-product-price">${product.price}</div>
+                    <div class="similarity-score">相似度: ${product.similarity}</div>
+                </div>
+            `).join('');
+        }
+
+        function selectSimilarProduct(productName, productPrice) {
+            console.log('选择相似商品:', productName, productPrice);
+            // 这里可以跳转到商品详情页或执行其他操作
+            alert(`您选择了: ${productName}\n价格: ${productPrice}`);
+        }
+
+        function refreshSimilarProducts() {
+            const referenceName = document.getElementById('referenceName').textContent;
+            loadSimilarProducts(referenceName);
+        }
+
+        // 点击弹窗外部关闭
+        document.getElementById('similarModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeSimilarModal();
+            }
+        });
+
+        // ESC键关闭弹窗
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeSimilarModal();
+            }
+        });
+        
+        // 页面加载完成后检查相似商品按钮
+        window.addEventListener('load', function() {
+            console.log('页面加载完成，检查相似商品按钮...');
+            
+            // 检查相似商品按钮是否存在
+            const similarButtons = document.querySelectorAll('.similar-btn');
+            console.log('找到相似商品按钮数量:', similarButtons.length);
+            
+            similarButtons.forEach((btn, index) => {
+                const rect = btn.getBoundingClientRect();
+                console.log(`按钮 ${index + 1}:`, {
+                    text: btn.textContent.trim(),
+                    visible: btn.offsetWidth > 0 && btn.offsetHeight > 0,
+                    display: window.getComputedStyle(btn).display,
+                    visibility: window.getComputedStyle(btn).visibility,
+                    position: {x: rect.x, y: rect.y, width: rect.width, height: rect.height}
+                });
+            });
+        });
     </script>
 </body>
 </html>

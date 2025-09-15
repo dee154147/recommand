@@ -45,7 +45,7 @@ if __name__ == '__main__':
     # 开发环境运行
     app.run(
         host='0.0.0.0',
-        port=5001,
+        port=5002,
         debug=True,
         threaded=True,  # 启用多线程
         use_reloader=False  # 禁用自动重载以避免端口冲突

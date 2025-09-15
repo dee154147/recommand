@@ -366,7 +366,7 @@ class RecommendationService:
             return []
     
     def semantic_search(self, query: str, top_k: int = 20, timeout: int = 30) -> List[Dict]:
-        """基于语义的搜索 - 直接使用检索词特征向量与商品向量进行相似度匹配"""
+        """基于语义的搜索 - 使用pgvector进行全量向量相似度匹配"""
         start_time = time.time()
         
         try:
@@ -407,52 +407,51 @@ class RecommendationService:
             # 计算查询向量的平均值
             query_vector = np.mean(query_vectors, axis=0)
             
-            # 为了提高性能，只计算部分商品的相似度
-            # 先随机采样一部分商品进行计算
-            max_products = min(5000, top_k * 50)  # 最多计算5000个商品或top_k*50个商品
+            # 转换为PostgreSQL vector格式
+            vector_str = '[' + ','.join(map(str, query_vector)) + ']'
+            
+            # 使用pgvector进行全量向量相似度搜索
+            from sqlalchemy import text
+            
+            sql_query = text("""
+                SELECT 
+                    id, 
+                    name, 
+                    description, 
+                    price, 
+                    category_id, 
+                    image_url, 
+                    tags,
+                    product_vector <=> :query_vector as distance,
+                    1 - (product_vector <=> :query_vector) as similarity
+                FROM products 
+                WHERE product_vector IS NOT NULL
+                ORDER BY product_vector <=> :query_vector
+                LIMIT :top_k
+            """)
+            
+            # 执行查询
+            result = db.session.execute(sql_query, {
+                'query_vector': vector_str,
+                'top_k': top_k
+            })
+            
+            # 格式化结果
             similarities = []
-            
-            # 随机获取商品进行相似度计算
-            products = Product.query.filter(
-                Product.embedding.isnot(None)
-            ).order_by(db.func.random()).limit(max_products).all()
-            
-            logger.info(f"开始计算与 {len(products)} 个商品的相似度")
-            
-            # 计算相似度
-            for product in products:
-                # 检查超时
-                if time.time() - start_time > timeout:
-                    logger.warning(f"语义搜索超时，已处理 {len(similarities)} 个商品")
-                    break
-                
-                try:
-                    if product.embedding:
-                        product_vector = np.array(json.loads(product.embedding))
-                        similarity = self.calculate_similarity(query_vector, product_vector)
-                        
-                        similarities.append({
-                            'product_id': product.id,
-                            'product_name': product.name,
-                            'similarity': similarity
-                        })
-                except Exception as e:
-                    logger.error(f"计算商品 {product.id} 相似度失败: {str(e)}")
-                    continue
-            
-            # 按相似度排序（确保稳定性）
-            # 使用稳定的排序算法，相同相似度时按product_id排序
-            similarities.sort(key=lambda x: (-x['similarity'], x['product_id']))
+            for row in result.fetchall():
+                similarities.append({
+                    'product_id': row.id,
+                    'product_name': row.name,
+                    'similarity': float(row.similarity)
+                })
             
             # 添加调试信息
-            logger.info(f"语义搜索 '{query}' 计算了 {len(similarities)} 个商品的相似度，最高相似度: {similarities[0]['similarity'] if similarities else 0}")
-            
-            results = similarities[:top_k]
+            logger.info(f"语义搜索 '{query}' 使用pgvector全量搜索，找到 {len(similarities)} 个商品，最高相似度: {similarities[0]['similarity'] if similarities else 0}")
             
             # 保存到缓存
-            self._save_to_cache(cache_key, results)
+            self._save_to_cache(cache_key, similarities)
             
-            return results
+            return similarities
             
         except Exception as e:
             logger.error(f"语义搜索失败: {str(e)}")

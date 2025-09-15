@@ -30,8 +30,20 @@ class PgVectorRecommendationService:
             # 使用现有的推荐服务加载词向量
             from app.services.recommendation_service import RecommendationService
             old_service = RecommendationService()
-            self.word_vectors = old_service.word_vectors
-            logger.info("词向量模型加载完成")
+            
+            # 确保词向量模型已加载
+            if not old_service.word_vectors:
+                logger.warning("RecommendationService词向量模型未加载，尝试加载...")
+                if old_service.load_word_vectors():
+                    self.word_vectors = old_service.word_vectors
+                    logger.info("词向量模型加载完成")
+                else:
+                    logger.error("词向量模型加载失败")
+                    return {}
+            else:
+                self.word_vectors = old_service.word_vectors
+                logger.info("词向量模型加载完成")
+            
             return self.word_vectors
         except Exception as e:
             logger.error(f"加载词向量模型失败: {e}")
@@ -40,8 +52,15 @@ class PgVectorRecommendationService:
     def calculate_query_vector(self, query: str) -> Optional[str]:
         """计算查询向量"""
         try:
+            # 确保查询字符串是UTF-8编码
+            if isinstance(query, bytes):
+                query = query.decode('utf-8')
+            
+            logger.info(f"计算查询向量: '{query}'")
+            
             # 使用文本处理器处理查询
             words = self.text_processor.segment_text(query)
+            logger.info(f"分词结果: {words}")
             
             # 过滤有意义的词
             meaningful_words = []
@@ -49,7 +68,10 @@ class PgVectorRecommendationService:
                 if self.text_processor._is_meaningful_word(word):
                     meaningful_words.append(word)
             
+            logger.info(f"有意义的词: {meaningful_words}")
+            
             if not meaningful_words:
+                logger.warning("没有找到有意义的词")
                 return None
             
             # 计算词向量的平均值
@@ -57,8 +79,12 @@ class PgVectorRecommendationService:
             for word in meaningful_words:
                 if word in self.word_vectors:
                     vectors.append(self.word_vectors[word])
+                    logger.debug(f"词 '{word}' 向量获取成功")
+                else:
+                    logger.warning(f"词 '{word}' 不在词向量模型中")
             
             if not vectors:
+                logger.warning("无法获取任何词向量")
                 return None
             
             # 计算平均向量
@@ -66,6 +92,7 @@ class PgVectorRecommendationService:
             
             # 转换为PostgreSQL vector格式
             vector_str = '[' + ','.join(map(str, avg_vector)) + ']'
+            logger.info(f"查询向量计算完成，长度: {len(avg_vector)}")
             return vector_str
             
         except Exception as e:

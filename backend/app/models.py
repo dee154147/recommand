@@ -1,6 +1,5 @@
 from datetime import datetime
 from app import db
-from sqlalchemy.dialects.postgresql import ARRAY
 import json
 
 class Product(db.Model):
@@ -213,3 +212,4 @@ class RecommendationCache(db.Model):
     
     def __repr__(self):
         return f'<RecommendationCache {self.cache_type}: {self.target_id}>'
+

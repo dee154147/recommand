@@ -10,7 +10,6 @@ import logging
 from typing import Dict, Any
 
 from ..services.data_processing_service import DataProcessingService
-from ..utils.response_utils import success_response, error_response
 
 logger = logging.getLogger(__name__)
 
@@ -36,17 +35,17 @@ def import_products():
         
         # 验证参数
         if not file_path:
-            return error_response('文件路径不能为空', 400)
+            return jsonify({'success': False, 'error': '文件路径不能为空'}), 400
         
         if batch_size <= 0 or batch_size > 1000:
-            return error_response('批次大小必须在1-1000之间', 400)
+            return jsonify({'success': False, 'error': '批次大小必须在1-1000之间'}), 400
         
         # 构建完整文件路径
         full_path = os.path.join(os.path.dirname(__file__), '../../..', file_path)
         
         # 检查文件是否存在
         if not os.path.exists(full_path):
-            return error_response(f'文件不存在: {file_path}', 404)
+            return jsonify({'success': False, 'error': f'文件不存在: {file_path}'}), 404
         
         # 开始导入数据
         logger.info(f"开始导入商品数据: {file_path}, 批次大小: {batch_size}")
@@ -54,13 +53,13 @@ def import_products():
         result = data_service.import_products_from_file(full_path, batch_size)
         
         if result['status'] == 'completed':
-            return success_response(result, '商品数据导入完成')
+            return jsonify({'success': True, 'data': result, 'message': '商品数据导入完成'})
         else:
-            return error_response(f'商品数据导入失败: {result.get("error", "未知错误")}', 500)
+            return jsonify({'success': False, 'error': f'商品数据导入失败: {result.get("error", "未知错误")}'}), 500
             
     except Exception as e:
         logger.error(f"导入商品数据API错误: {e}")
-        return error_response(f'导入商品数据失败: {str(e)}', 500)
+        return jsonify({'success': False, 'error': f'导入商品数据失败: {str(e)}'}), 500
 
 
 @data_bp.route('/import-progress', methods=['GET'])
@@ -72,11 +71,11 @@ def get_import_progress():
     """
     try:
         progress = data_service.get_import_progress()
-        return success_response(progress, '获取导入进度成功')
+        return jsonify({'success': True, 'data': progress, 'message': '获取导入进度成功'})
         
     except Exception as e:
         logger.error(f"获取导入进度API错误: {e}")
-        return error_response(f'获取导入进度失败: {str(e)}', 500)
+        return jsonify({'success': False, 'error': f'获取导入进度失败: {str(e)}'}), 500
 
 
 @data_bp.route('/statistics', methods=['GET'])
@@ -88,11 +87,11 @@ def get_statistics():
     """
     try:
         stats = data_service.get_product_statistics()
-        return success_response(stats, '获取统计信息成功')
+        return jsonify({'success': True, 'data': stats, 'message': '获取统计信息成功'})
         
     except Exception as e:
         logger.error(f"获取统计信息API错误: {e}")
-        return error_response(f'获取统计信息失败: {str(e)}', 500)
+        return jsonify({'success': False, 'error': f'获取统计信息失败: {str(e)}'}), 500
 
 
 @data_bp.route('/clear', methods=['POST'])
@@ -108,19 +107,19 @@ def clear_data():
         confirm = data.get('confirm', False)
         
         if not confirm:
-            return error_response('请确认是否要清空所有数据', 400)
+            return jsonify({'success': False, 'error': '请确认是否要清空所有数据'}), 400
         
         # 清空数据
         success = data_service.clear_all_data()
         
         if success:
-            return success_response({'cleared': True}, '数据清空成功')
+            return jsonify({'success': True, 'data': {'cleared': True}, 'message': '数据清空成功'})
         else:
-            return error_response('数据清空失败', 500)
+            return jsonify({'success': False, 'error': '数据清空失败'}), 500
             
     except Exception as e:
         logger.error(f"清空数据API错误: {e}")
-        return error_response(f'清空数据失败: {str(e)}', 500)
+        return jsonify({'success': False, 'error': f'清空数据失败: {str(e)}'}), 500
 
 
 @data_bp.route('/test-segmentation', methods=['POST'])
@@ -135,7 +134,7 @@ def test_segmentation():
         text = data.get('text', '')
         
         if not text:
-            return error_response('请输入要分词的文本', 400)
+            return jsonify({'success': False, 'error': '请输入要分词的文本'}), 400
         
         # 测试分词
         tags = data_service.extract_tags_from_title(text)
@@ -146,11 +145,11 @@ def test_segmentation():
             'tag_count': len(tags)
         }
         
-        return success_response(result, '分词测试完成')
+        return jsonify({'success': True, 'data': result, 'message': '分词测试完成'})
         
     except Exception as e:
         logger.error(f"分词测试API错误: {e}")
-        return error_response(f'分词测试失败: {str(e)}', 500)
+        return jsonify({'success': False, 'error': f'分词测试失败: {str(e)}'}), 500
 
 
 @data_bp.route('/test-category', methods=['POST'])
@@ -165,7 +164,7 @@ def test_category_detection():
         text = data.get('text', '')
         
         if not text:
-            return error_response('请输入要检测分类的文本', 400)
+            return jsonify({'success': False, 'error': '请输入要检测分类的文本'}), 400
         
         # 提取标签
         tags = data_service.extract_tags_from_title(text)
@@ -180,11 +179,11 @@ def test_category_detection():
             'category_name': data_service.categories.get(category_id, {}).get('name', '未知分类') if category_id else '未检测到分类'
         }
         
-        return success_response(result, '分类检测测试完成')
+        return jsonify({'success': True, 'data': result, 'message': '分类检测测试完成'})
         
     except Exception as e:
         logger.error(f"分类检测测试API错误: {e}")
-        return error_response(f'分类检测测试失败: {str(e)}', 500)
+        return jsonify({'success': False, 'error': f'分类检测测试失败: {str(e)}'}), 500
 
 
 @data_bp.route('/health', methods=['GET'])
@@ -205,8 +204,8 @@ def health_check():
             'total_tags': progress.get('total_tags', 0)
         }
         
-        return success_response(health_status, '服务状态正常')
+        return jsonify({'success': True, 'data': health_status, 'message': '服务状态正常'})
         
     except Exception as e:
         logger.error(f"健康检查API错误: {e}")
-        return error_response(f'服务状态异常: {str(e)}', 500)
+        return jsonify({'success': False, 'error': f'服务状态异常: {str(e)}'}), 500

@@ -5,7 +5,6 @@
 
 from flask import Blueprint, request, jsonify
 from app.services.recommendation_service import RecommendationService
-from app.utils.response_utils import success_response, error_response
 import logging
 
 logger = logging.getLogger(__name__)
@@ -21,17 +20,17 @@ def precompute_tag_vectors():
         result = service.precompute_tag_vectors()
         
         if 'error' in result:
-            return error_response(result['error'], 500)
+            return jsonify({'success': False, 'error': result['error']}), 500
         
-        return success_response({
+        return jsonify({'success': True, 'data': {
             'message': '标签向量预计算完成',
             'success_count': result['success'],
             'failed_count': result['failed']
-        })
+        }})
         
     except Exception as e:
         logger.error(f"预计算标签向量失败: {str(e)}")
-        return error_response(f"预计算标签向量失败: {str(e)}", 500)
+        return jsonify({'success': False, 'error': f"预计算标签向量失败: {str(e)}"}), 500
 
 @recommendation_bp.route('/precompute-product-vectors', methods=['POST'])
 def precompute_product_vectors():
@@ -41,17 +40,17 @@ def precompute_product_vectors():
         result = service.precompute_product_vectors()
         
         if 'error' in result:
-            return error_response(result['error'], 500)
+            return jsonify({'success': False, 'error': result['error']}), 500
         
-        return success_response({
+        return jsonify({'success': True, 'data': {
             'message': '商品向量预计算完成',
             'success_count': result['success'],
             'failed_count': result['failed']
-        })
+        }})
         
     except Exception as e:
         logger.error(f"预计算商品向量失败: {str(e)}")
-        return error_response(f"预计算商品向量失败: {str(e)}", 500)
+        return jsonify({'success': False, 'error': f"预计算商品向量失败: {str(e)}"}), 500
 
 @recommendation_bp.route('/similar-products/<int:product_id>', methods=['GET'])
 def get_similar_products(product_id):
@@ -64,40 +63,43 @@ def get_similar_products(product_id):
         service = RecommendationService()
         similar_products = service.find_similar_products(product_id, top_k)
         
-        return success_response({
+        return jsonify({'success': True, 'data': {
             'product_id': product_id,
             'similar_products': similar_products,
             'count': len(similar_products)
-        })
+        }})
         
     except Exception as e:
         logger.error(f"获取相似商品失败: {str(e)}")
-        return error_response(f"获取相似商品失败: {str(e)}", 500)
+        return jsonify({'success': False, 'error': f"获取相似商品失败: {str(e)}"}), 500
 
 @recommendation_bp.route('/semantic-search', methods=['GET'])
 def semantic_search():
-    """语义搜索"""
+    """语义搜索 - 使用pgvector全量搜索"""
     try:
         query = request.args.get('q', '').strip()
         if not query:
-            return error_response("查询参数不能为空", 400)
+            return jsonify({'success': False, 'error': "查询参数不能为空"}), 400
         
         top_k = request.args.get('top_k', 20, type=int)
         if top_k > 100:
             top_k = 100
         
-        service = RecommendationService()
+        # 使用pgvector推荐服务进行语义搜索
+        from app.services.pgvector_recommendation_service import PgVectorRecommendationService
+        service = PgVectorRecommendationService()
         results = service.semantic_search(query, top_k)
         
-        return success_response({
+        return jsonify({'success': True, 'data': {
             'query': query,
             'results': results,
-            'count': len(results)
-        })
+            'count': len(results),
+            'implementation': 'pgvector_full_search'
+        }})
         
     except Exception as e:
         logger.error(f"语义搜索失败: {str(e)}")
-        return error_response(f"语义搜索失败: {str(e)}", 500)
+        return jsonify({'success': False, 'error': f"语义搜索失败: {str(e)}"}), 500
 
 @recommendation_bp.route('/statistics', methods=['GET'])
 def get_statistics():
@@ -106,11 +108,11 @@ def get_statistics():
         service = RecommendationService()
         stats = service.get_statistics()
         
-        return success_response(stats)
+        return jsonify({'success': True, 'data': stats})
         
     except Exception as e:
         logger.error(f"获取统计信息失败: {str(e)}")
-        return error_response(f"获取统计信息失败: {str(e)}", 500)
+        return jsonify({'success': False, 'error': f"获取统计信息失败: {str(e)}"}), 500
 
 @recommendation_bp.route('/test-word-vector', methods=['GET'])
 def test_word_vector():
@@ -118,33 +120,33 @@ def test_word_vector():
     try:
         word = request.args.get('word', '手机').strip()
         if not word:
-            return error_response("词参数不能为空", 400)
+            return jsonify({'success': False, 'error': "词参数不能为空"}), 400
         
         service = RecommendationService()
         
         # 测试词向量加载
         if not service.load_word_vectors():
-            return error_response("词向量模型加载失败", 500)
+            return jsonify({'success': False, 'error': "词向量模型加载失败"}), 500
         
         # 获取词向量
         vector = service.get_word_vector(word)
         if vector is None:
-            return error_response(f"词 '{word}' 不在词向量模型中", 404)
+            return jsonify({'success': False, 'error': f"词 '{word}' 不在词向量模型中"}), 404
         
         # 计算标签向量
         tag_vector = service.calculate_tag_vector(word)
         
-        return success_response({
+        return jsonify({'success': True, 'data': {
             'word': word,
             'word_vector_dim': len(vector),
             'word_vector_sample': vector[:10].tolist(),  # 只返回前10个维度
             'tag_vector_dim': len(tag_vector) if tag_vector is not None else 0,
             'tag_vector_sample': tag_vector[:10].tolist() if tag_vector is not None else None
-        })
+        }})
         
     except Exception as e:
         logger.error(f"测试词向量失败: {str(e)}")
-        return error_response(f"测试词向量失败: {str(e)}", 500)
+        return jsonify({'success': False, 'error': f"测试词向量失败: {str(e)}"}), 500
 
 @recommendation_bp.route('/health', methods=['GET'])
 def health_check():
@@ -153,12 +155,12 @@ def health_check():
         service = RecommendationService()
         model_loaded = service.load_word_vectors()
         
-        return success_response({
+        return jsonify({'success': True, 'data': {
             'status': 'healthy',
             'model_loaded': model_loaded,
             'model_path': service.model_path
-        })
+        }})
         
     except Exception as e:
         logger.error(f"健康检查失败: {str(e)}")
-        return error_response(f"健康检查失败: {str(e)}", 500)
+        return jsonify({'success': False, 'error': f"健康检查失败: {str(e)}"}), 500
