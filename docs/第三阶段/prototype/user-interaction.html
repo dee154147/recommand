@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户交互 - 智能推荐系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #ffffff;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* 背景动画 */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 0, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(0, 255, 0, 0.1) 0%, transparent 50%);
+            animation: backgroundMove 20s ease-in-out infinite;
+        }
+
+        @keyframes backgroundMove {
+            0%, 100% { transform: translateX(0) translateY(0); }
+            25% { transform: translateX(-2%) translateY(-2%); }
+            50% { transform: translateX(2%) translateY(-1%); }
+            75% { transform: translateX(-1%) translateY(2%); }
+        }
+
+        /* 顶部导航栏 */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+            z-index: 1000;
+            padding: 0 5%;
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 70px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-item a {
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+        }
+
+        .nav-item a:hover {
+            color: #00ffff;
+            background: rgba(0, 255, 255, 0.1);
+        }
+
+        .nav-item.active a {
+            color: #00ffff;
+            background: rgba(0, 255, 255, 0.1);
+        }
+
+        /* 用户信息栏 */
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 2rem;
+            background: rgba(0, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 15px;
+            margin: 1rem 0;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: #ffffff;
+        }
+
+        .user-details {
+            flex: 1;
+        }
+
+        .user-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 0.2rem;
+        }
+
+        .user-stats {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-search {
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            color: #ffffff;
+        }
+
+        .btn-recommend {
+            background: linear-gradient(45deg, #ff6b6b, #ffa500);
+            color: #ffffff;
+        }
+
+        .btn-history {
+            background: linear-gradient(45deg, #9C27B0, #E91E63);
+            color: #ffffff;
+        }
+
+        .btn-logout {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #ffffff;
+        }
+
+        .btn-small:hover {
+            transform: translateY(-1px);
+        }
+
+        /* 主要内容区域 */
+        .main-content {
+            margin-top: 70px;
+            padding: 2rem 5%;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* 搜索区域 */
+        .search-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .search-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .search-bar {
+            width: 100%;
+            max-width: 600px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(0, 255, 255, 0.2);
+            border-radius: 50px;
+            color: #ffffff;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #00ffff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .search-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .search-btn {
+            padding: 0.8rem 2rem;
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            color: #ffffff;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 255, 255, 0.4);
+        }
+
+        .search-btn.secondary {
+            background: linear-gradient(45deg, #ff6b6b, #ffa500);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .search-btn.secondary:hover {
+            box-shadow: 0 10px 25px rgba(255, 107, 107, 0.4);
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 255, 255, 0.1);
+            border-radius: 20px;
+            margin-bottom: 2rem;
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-title {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .empty-description {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 2rem;
+        }
+
+        /* 商品网格 */
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .product-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: visible;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            border-color: #00ffff;
+            box-shadow: 0 15px 30px rgba(0, 255, 255, 0.2);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(45deg, rgba(0, 255, 255, 0.1), rgba(255, 0, 255, 0.1));
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: rgba(255, 255, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+
+        .product-info {
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            justify-content: space-between;
+        }
+
+        .product-details {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        .product-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            min-height: 2.8rem;
+        }
+
+        .product-description {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            min-height: 2.7rem;
+        }
+
+        .product-price {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #00ffff;
+            margin-bottom: 1rem;
+            min-height: 1.5rem;
+        }
+
+        .product-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .product-tag {
+            background: rgba(0, 255, 255, 0.1);
+            color: #00ffff;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            border: 1px solid rgba(0, 255, 255, 0.2);
+        }
+
+        /* 交互按钮组 */
+        .interaction-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-top: auto;
+        }
+
+        .interaction-btn {
+            padding: 0.6rem 0.8rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.3rem;
+        }
+
+        .btn-click {
+            background: linear-gradient(45deg, #4CAF50, #8BC34A);
+            color: #ffffff;
+        }
+
+        .btn-view {
+            background: linear-gradient(45deg, #2196F3, #03A9F4);
+            color: #ffffff;
+        }
+
+        .btn-favorite {
+            background: linear-gradient(45deg, #E91E63, #F06292);
+            color: #ffffff;
+        }
+
+        .btn-purchase {
+            background: linear-gradient(45deg, #FF9800, #FFC107);
+            color: #ffffff;
+        }
+
+        .btn-dislike {
+            background: linear-gradient(45deg, #F44336, #E57373);
+            color: #ffffff;
+        }
+
+        .interaction-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .interaction-btn:active {
+            transform: translateY(0);
+        }
+
+        /* 推荐区域 */
+        .recommendations-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .recommendations-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .recommendations-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .refresh-btn {
+            padding: 0.8rem 1.5rem;
+            background: linear-gradient(45deg, #ff6b6b, #ffa500);
+            color: #ffffff;
+            border: none;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        /* 交互历史弹窗 */
+        .history-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .history-modal.show {
+            display: flex;
+        }
+
+        .history-modal-content {
+            background: rgba(10, 10, 10, 0.95);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 20px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .history-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2rem;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+        }
+
+        .history-modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #9C27B0, #E91E63);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .history-modal-close {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .history-modal-close:hover {
+            color: #ff4444;
+            background: rgba(255, 68, 68, 0.1);
+        }
+
+        .history-content {
+            padding: 2rem;
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+
+        /* 简化的商品评分展示样式 */
+        .history-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .history-item:hover {
+            border-color: #9C27B0;
+            box-shadow: 0 8px 25px rgba(156, 39, 176, 0.2);
+            transform: translateY(-3px);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .history-product-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .history-product-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #ffffff;
+            line-height: 1.3;
+            margin: 0;
+        }
+
+        .history-product-category {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.6);
+            font-style: italic;
+        }
+
+        .history-score-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .history-total-score {
+            padding: 0.8rem 1.5rem;
+            border-radius: 25px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            text-align: center;
+            min-width: 80px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .score-excellent {
+            background: linear-gradient(135deg, #4CAF50, #8BC34A);
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .score-good {
+            background: linear-gradient(135deg, #FF9800, #FFC107);
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(255, 152, 0, 0.4);
+        }
+
+        .score-neutral {
+            background: linear-gradient(135deg, #2196F3, #03A9F4);
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.4);
+        }
+
+        .score-poor {
+            background: linear-gradient(135deg, #F44336, #E57373);
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.4);
+        }
+
+        .score-label {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 500;
+        }
+
+        .history-empty {
+            text-align: center;
+            padding: 3rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .history-empty-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .history-empty-text {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .history-empty-description {
+            font-size: 1rem;
+        }
+
+        .history-modal-footer {
+            padding: 2rem;
+            border-top: 1px solid rgba(0, 255, 255, 0.1);
+            text-align: center;
+        }
+
+        .history-modal-btn {
+            padding: 0.8rem 2rem;
+            background: linear-gradient(45deg, #9C27B0, #E91E63);
+            color: #ffffff;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .history-modal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(156, 39, 176, 0.4);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+            }
+
+            .main-content {
+                padding: 1rem 2%;
+            }
+
+            .user-info {
+                flex-direction: column;
+                text-align: center;
+                gap: 1rem;
+            }
+
+            .user-actions {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .search-buttons {
+                flex-direction: column;
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .search-btn {
+                width: 100%;
+            }
+
+            .products-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                gap: 1rem;
+            }
+
+            .interaction-buttons {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .history-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            
+            .history-product-info {
+                width: 100%;
+            }
+            
+            .history-score-section {
+                align-self: flex-end;
+            }
+            
+            .history-total-score {
+                min-width: 70px;
+                padding: 0.6rem 1.2rem;
+                font-size: 1.1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .products-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .product-card {
+                padding: 1rem;
+            }
+
+            .product-image {
+                height: 150px;
+            }
+
+            .interaction-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 背景动画 -->
+    <div class="bg-animation"></div>
+
+    <!-- 顶部导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">智能推荐系统</div>
+            <ul class="nav-menu">
+                <li class="nav-item"><a href="index.html">首页</a></li>
+                <li class="nav-item"><a href="index.html#features">产品特性</a></li>
+                <li class="nav-item"><a href="index.html#team">团队介绍</a></li>
+                <li class="nav-item"><a href="index.html#contact">联系我们</a></li>
+                <li class="nav-item dropdown">
+                    <a href="#" class="dropdown-toggle">功能演示</a>
+                    <div class="dropdown-menu">
+                        <a href="product-search.html" class="dropdown-item">商品检索</a>
+                        <a href="product-management.html" class="dropdown-item">商品管理</a>
+                        <a href="user-interaction.html" class="dropdown-item active">用户交互</a>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- 主要内容区域 -->
+    <main class="main-content">
+        <div class="container">
+            <!-- 用户信息栏 -->
+            <div class="user-info" id="userInfo">
+                <div class="user-avatar" id="userAvatar">👤</div>
+                <div class="user-details">
+                    <div class="user-name" id="userName">用户</div>
+                    <div class="user-stats" id="userStats">已交互: 0次</div>
+                </div>
+                <div class="user-actions">
+                    <button class="btn-small btn-search" onclick="scrollToSearch()">🔍 搜索</button>
+                    <button class="btn-small btn-recommend" onclick="scrollToRecommendations()">💡 推荐</button>
+                    <button class="btn-small btn-history" onclick="showInteractionHistory()">📋 交互历史</button>
+                    <button class="btn-small btn-logout" onclick="logout()">🚪 退出</button>
+                </div>
+            </div>
+
+            <!-- 搜索区域 -->
+            <section class="search-section">
+                <div class="search-container">
+                    <div class="search-bar">
+                        <input 
+                            type="text" 
+                            class="search-input" 
+                            placeholder="请输入商品关键词，如：智能手机、运动鞋、笔记本电脑..."
+                            id="searchInput"
+                        >
+                    </div>
+                    <div class="search-buttons">
+                        <button class="search-btn" id="semanticSearchBtn">
+                            🔍 语义检索
+                        </button>
+                        <button class="search-btn secondary" id="fuzzySearchBtn">
+                            📝 模糊匹配
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 商品展示区域 -->
+            <section class="products-section" id="productsSection">
+                <!-- 空状态 -->
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-icon">🔍</div>
+                    <div class="empty-title">暂无交互数据</div>
+                    <div class="empty-description">
+                        请先搜索商品并进行交互，以获取个性化推荐<br>
+                        系统会根据您的交互行为生成专属推荐列表
+                    </div>
+                </div>
+
+                <!-- 商品网格 -->
+                <div class="products-grid" id="productsGrid" style="display: none;">
+                    <!-- 商品卡片将在这里动态加载 -->
+                </div>
+            </section>
+
+            <!-- 推荐区域 -->
+            <section class="recommendations-section" id="recommendationsSection" style="display: none;">
+                <div class="recommendations-header">
+                    <h2 class="recommendations-title">🎯 个性化推荐</h2>
+                    <button class="refresh-btn" onclick="refreshRecommendations()">
+                        🔄 刷新推荐
+                    </button>
+                </div>
+                <div class="products-grid" id="recommendationsGrid">
+                    <!-- 推荐商品将在这里动态加载 -->
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- 交互历史弹窗 -->
+    <div class="history-modal" id="historyModal">
+        <div class="history-modal-content">
+            <div class="history-modal-header">
+                <h2 class="history-modal-title">📋 交互历史</h2>
+                <button class="history-modal-close" onclick="closeHistoryModal()">&times;</button>
+            </div>
+            
+            <div class="history-content" id="historyContent">
+                <!-- 交互历史将在这里动态加载 -->
+            </div>
+            
+            <div class="history-modal-footer">
+                <button class="history-modal-btn" onclick="closeHistoryModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentUserId = '';
+        let userInteractions = [];
+        let currentProducts = [];
+        let currentRecommendations = [];
+
+        // 页面加载时初始化
+        window.addEventListener('load', function() {
+            initializeUser();
+            loadUserInteractions();
+        });
+
+        // 初始化用户信息
+        function initializeUser() {
+            currentUserId = localStorage.getItem('currentUserId');
+            
+            if (!currentUserId) {
+                // 如果没有用户ID，跳转到登录页面
+                window.location.href = 'user-login.html';
+                return;
+            }
+
+            // 更新用户信息显示
+            document.getElementById('userName').textContent = currentUserId;
+            document.getElementById('userAvatar').textContent = getUserAvatar(currentUserId);
+            
+            // 模拟加载用户交互数据
+            loadUserInteractions();
+        }
+
+        // 获取用户头像
+        function getUserAvatar(userId) {
+            const avatars = ['👤', '👨', '👩', '🧑', '👨‍💻', '👩‍💻', '👨‍🎨', '👩‍🎨'];
+            const hash = userId.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+            return avatars[hash % avatars.length];
+        }
+
+        // 加载用户交互数据
+        function loadUserInteractions() {
+            // 模拟从API获取用户交互数据
+            const mockInteractions = [
+                { productId: 1, productName: 'iPhone 15 Pro Max', interactionType: 'click', score: 1, timestamp: new Date() },
+                { productId: 2, productName: 'MacBook Pro', interactionType: 'view', score: 2, timestamp: new Date() },
+                { productId: 3, productName: 'AirPods Pro', interactionType: 'favorite', score: 3, timestamp: new Date() }
+            ];
+
+            userInteractions = mockInteractions;
+            updateUserStats();
+            
+            // 如果有交互数据，显示推荐区域
+            if (userInteractions.length > 0) {
+                showRecommendations();
+                loadRecommendations();
+            }
+        }
+
+        // 更新用户统计信息
+        function updateUserStats() {
+            const totalInteractions = userInteractions.length;
+            const totalScore = userInteractions.reduce((sum, interaction) => sum + interaction.score, 0);
+            
+            document.getElementById('userStats').textContent = 
+                `已交互: ${totalInteractions}次 | 总评分: ${totalScore}分`;
+        }
+
+        // 显示推荐区域
+        function showRecommendations() {
+            document.getElementById('recommendationsSection').style.display = 'block';
+            document.getElementById('emptyState').style.display = 'none';
+        }
+
+        // 加载推荐商品
+        function loadRecommendations() {
+            // 模拟推荐商品数据
+            const mockRecommendations = [
+                {
+                    id: 4,
+                    name: 'iPad Pro 12.9英寸 M2芯片',
+                    description: '专业级平板电脑，支持Apple Pencil，适合创作和办公',
+                    price: '¥8,999',
+                    tags: ['平板电脑', '苹果', '专业'],
+                    image: 'https://via.placeholder.com/280x200/00ffff/ffffff?text=iPad+Pro'
+                },
+                {
+                    id: 5,
+                    name: 'Sony WH-1000XM5 降噪耳机',
+                    description: '业界领先的降噪技术，30小时续航，支持快速充电',
+                    price: '¥2,299',
+                    tags: ['耳机', '降噪', '无线'],
+                    image: 'https://via.placeholder.com/280x200/ff00ff/ffffff?text=Sony+耳机'
+                },
+                {
+                    id: 6,
+                    name: 'Apple Watch Series 9',
+                    description: '智能手表，健康监测，GPS定位，防水设计',
+                    price: '¥2,999',
+                    tags: ['智能手表', '健康', '运动'],
+                    image: 'https://via.placeholder.com/280x200/00ff00/ffffff?text=Apple+Watch'
+                }
+            ];
+
+            currentRecommendations = mockRecommendations;
+            displayRecommendations();
+        }
+
+        // 显示推荐商品
+        function displayRecommendations() {
+            const grid = document.getElementById('recommendationsGrid');
+            
+            grid.innerHTML = currentRecommendations.map(product => `
+                <div class="product-card">
+                    <div class="product-image">
+                        <img src="${product.image}" alt="${product.name}">
+                    </div>
+                    <div class="product-info">
+                        <div class="product-details">
+                            <h3 class="product-name">${product.name}</h3>
+                            <p class="product-description">${product.description}</p>
+                            <div class="product-price">${product.price}</div>
+                            <div class="product-tags">
+                                ${product.tags.map(tag => `<span class="product-tag">${tag}</span>`).join('')}
+                            </div>
+                        </div>
+                        <div class="interaction-buttons">
+                            <button class="interaction-btn btn-click" onclick="recordInteraction(${product.id}, 'click', 1)">
+                                👆 点击
+                            </button>
+                            <button class="interaction-btn btn-view" onclick="recordInteraction(${product.id}, 'view', 2)">
+                                👁 查看
+                            </button>
+                            <button class="interaction-btn btn-favorite" onclick="recordInteraction(${product.id}, 'favorite', 3)">
+                                ❤ 收藏
+                            </button>
+                            <button class="interaction-btn btn-purchase" onclick="recordInteraction(${product.id}, 'purchase', 5)">
+                                🛒 购买
+                            </button>
+                            <button class="interaction-btn btn-dislike" onclick="recordInteraction(${product.id}, 'dislike', -2)">
+                                👎 不推荐
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 记录用户交互
+        function recordInteraction(productId, interactionType, score) {
+            const product = currentRecommendations.find(p => p.id === productId) || 
+                           currentProducts.find(p => p.id === productId);
+            
+            if (!product) {
+                console.error('商品不存在:', productId);
+                return;
+            }
+
+            // 创建交互记录
+            const interaction = {
+                productId: productId,
+                productName: product.name,
+                interactionType: interactionType,
+                score: score,
+                timestamp: new Date()
+            };
+
+            // 添加到用户交互历史
+            userInteractions.push(interaction);
+            
+            // 更新用户统计
+            updateUserStats();
+            
+            // 显示交互反馈
+            showInteractionFeedback(interaction);
+            
+            // 模拟更新推荐
+            setTimeout(() => {
+                updateRecommendations();
+            }, 1000);
+        }
+
+        // 显示交互反馈
+        function showInteractionFeedback(interaction) {
+            const feedbackMessages = {
+                'click': '👆 已记录点击行为',
+                'view': '👁 已记录查看行为',
+                'favorite': '❤ 已添加到收藏',
+                'purchase': '🛒 已记录购买行为',
+                'dislike': '👎 已记录不推荐'
+            };
+
+            const message = feedbackMessages[interaction.interactionType] || '✅ 交互已记录';
+            
+            // 创建临时提示
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 100px;
+                right: 20px;
+                background: linear-gradient(45deg, #00ffff, #ff00ff);
+                color: white;
+                padding: 1rem 2rem;
+                border-radius: 10px;
+                z-index: 2000;
+                font-weight: 600;
+                box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3);
+                animation: slideIn 0.3s ease;
+            `;
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            // 3秒后移除提示
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 300);
+            }, 3000);
+        }
+
+        // 更新推荐
+        function updateRecommendations() {
+            // 模拟基于用户交互更新推荐
+            console.log('基于用户交互更新推荐...');
+            
+            // 这里会调用真实的推荐API
+            // 现在只是模拟刷新推荐列表
+            loadRecommendations();
+        }
+
+        // 刷新推荐
+        function refreshRecommendations() {
+            const btn = document.querySelector('.refresh-btn');
+            const originalText = btn.textContent;
+            btn.textContent = '🔄 刷新中...';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                loadRecommendations();
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }, 1500);
+        }
+
+        // 搜索功能
+        document.getElementById('semanticSearchBtn').addEventListener('click', function() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (query) {
+                performSearch(query, 'semantic');
+            } else {
+                alert('请输入搜索关键词');
+            }
+        });
+
+        document.getElementById('fuzzySearchBtn').addEventListener('click', function() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (query) {
+                performSearch(query, 'fuzzy');
+            } else {
+                alert('请输入搜索关键词');
+            }
+        });
+
+        function performSearch(query, type) {
+            console.log(`执行${type === 'semantic' ? '语义' : '模糊'}搜索:`, query);
+            
+            // 模拟搜索商品数据
+            const mockSearchResults = [
+                {
+                    id: 7,
+                    name: 'Samsung Galaxy S24 Ultra 256GB',
+                    description: '三星旗舰手机，200MP主摄像头，S Pen支持，AI功能丰富',
+                    price: '¥8,999',
+                    tags: ['智能手机', '三星', 'AI'],
+                    image: 'https://via.placeholder.com/280x200/2196f3/ffffff?text=Galaxy+S24'
+                },
+                {
+                    id: 8,
+                    name: 'Nike Air Max 270 运动鞋',
+                    description: '经典运动鞋款，舒适透气，适合日常运动和休闲穿着',
+                    price: '¥899',
+                    tags: ['运动鞋', 'Nike', '休闲'],
+                    image: 'https://via.placeholder.com/280x200/ff00ff/ffffff?text=Nike+Air+Max'
+                }
+            ];
+
+            currentProducts = mockSearchResults;
+            displaySearchResults();
+        }
+
+        function displaySearchResults() {
+            const grid = document.getElementById('productsGrid');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (currentProducts.length === 0) {
+                emptyState.style.display = 'block';
+                grid.style.display = 'none';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            grid.style.display = 'grid';
+            
+            grid.innerHTML = currentProducts.map(product => `
+                <div class="product-card">
+                    <div class="product-image">
+                        <img src="${product.image}" alt="${product.name}">
+                    </div>
+                    <div class="product-info">
+                        <div class="product-details">
+                            <h3 class="product-name">${product.name}</h3>
+                            <p class="product-description">${product.description}</p>
+                            <div class="product-price">${product.price}</div>
+                            <div class="product-tags">
+                                ${product.tags.map(tag => `<span class="product-tag">${tag}</span>`).join('')}
+                            </div>
+                        </div>
+                        <div class="interaction-buttons">
+                            <button class="interaction-btn btn-click" onclick="recordInteraction(${product.id}, 'click', 1)">
+                                👆 点击
+                            </button>
+                            <button class="interaction-btn btn-view" onclick="recordInteraction(${product.id}, 'view', 2)">
+                                👁 查看
+                            </button>
+                            <button class="interaction-btn btn-favorite" onclick="recordInteraction(${product.id}, 'favorite', 3)">
+                                ❤ 收藏
+                            </button>
+                            <button class="interaction-btn btn-purchase" onclick="recordInteraction(${product.id}, 'purchase', 5)">
+                                🛒 购买
+                            </button>
+                            <button class="interaction-btn btn-dislike" onclick="recordInteraction(${product.id}, 'dislike', -2)">
+                                👎 不推荐
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 滚动到搜索区域
+        function scrollToSearch() {
+            document.querySelector('.search-section').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 滚动到推荐区域
+        function scrollToRecommendations() {
+            const recommendationsSection = document.getElementById('recommendationsSection');
+            if (recommendationsSection.style.display !== 'none') {
+                recommendationsSection.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                alert('请先进行商品交互以获取推荐');
+            }
+        }
+
+        // 显示交互历史 - 简化的商品评分展示
+        function showInteractionHistory() {
+            const modal = document.getElementById('historyModal');
+            const content = document.getElementById('historyContent');
+            
+            if (userInteractions.length === 0) {
+                content.innerHTML = `
+                    <div class="history-empty">
+                        <div class="history-empty-icon">📋</div>
+                        <div class="history-empty-text">暂无交互历史</div>
+                        <div class="history-empty-description">开始与商品交互，您的行为将记录在这里</div>
+                    </div>
+                `;
+            } else {
+                // 按商品分组，计算每个商品的总评分
+                const productScores = {};
+                
+                userInteractions.forEach(interaction => {
+                    const productId = interaction.productId;
+                    const productName = interaction.productName;
+                    const productCategory = getProductCategory(productName); // 根据商品名称推断分类
+                    
+                    if (!productScores[productId]) {
+                        productScores[productId] = {
+                            productId: productId,
+                            productName: productName,
+                            productCategory: productCategory,
+                            totalScore: 0,
+                            lastInteraction: interaction.timestamp
+                        };
+                    }
+                    
+                    productScores[productId].totalScore += interaction.score;
+                    
+                    // 更新最后交互时间
+                    if (new Date(interaction.timestamp) > new Date(productScores[productId].lastInteraction)) {
+                        productScores[productId].lastInteraction = interaction.timestamp;
+                    }
+                });
+                
+                // 转换为数组并按总评分排序（高分在前）
+                const sortedProducts = Object.values(productScores).sort((a, b) => 
+                    b.totalScore - a.totalScore
+                );
+                
+                content.innerHTML = sortedProducts.map(product => {
+                    const totalScoreText = product.totalScore > 0 ? `+${product.totalScore}` : `${product.totalScore}`;
+                    const scoreClass = getScoreClass(product.totalScore);
+                    const scoreLabel = getScoreLabel(product.totalScore);
+                    
+                    return `
+                        <div class="history-item">
+                            <div class="history-product-info">
+                                <div class="history-product-name">${product.productName}</div>
+                                <div class="history-product-category">${product.productCategory}</div>
+                            </div>
+                            <div class="history-score-section">
+                                <div class="history-total-score ${scoreClass}">${totalScoreText}</div>
+                                <div class="score-label">${scoreLabel}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            modal.classList.add('show');
+        }
+
+        // 关闭交互历史弹窗
+        function closeHistoryModal() {
+            document.getElementById('historyModal').classList.remove('show');
+        }
+
+        // 获取交互类型文本
+        function getInteractionTypeText(type) {
+            const typeMap = {
+                'click': '点击',
+                'view': '查看',
+                'favorite': '收藏',
+                'purchase': '购买',
+                'dislike': '不推荐'
+            };
+            return typeMap[type] || type;
+        }
+
+        // 获取评分样式类
+        function getScoreClass(score) {
+            if (score >= 10) return 'score-excellent';
+            if (score >= 5) return 'score-good';
+            if (score >= 0) return 'score-neutral';
+            return 'score-poor';
+        }
+
+        // 获取评分标签
+        function getScoreLabel(score) {
+            if (score >= 10) return '非常喜欢';
+            if (score >= 5) return '喜欢';
+            if (score >= 0) return '一般';
+            return '不喜欢';
+        }
+
+        // 根据商品名称推断分类
+        function getProductCategory(productName) {
+            const categoryMap = {
+                'iPhone': '手机数码',
+                'MacBook': '电脑办公',
+                'AirPods': '手机数码',
+                'iPad': '电脑办公',
+                'Sony': '手机数码',
+                'Nike': '运动户外',
+                'Samsung': '手机数码',
+                'Galaxy': '手机数码',
+                'Apple Watch': '手机数码'
+            };
+            
+            for (const [keyword, category] of Object.entries(categoryMap)) {
+                if (productName.includes(keyword)) {
+                    return category;
+                }
+            }
+            
+            return '其他';
+        }
+
+        // 格式化时间戳
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+            
+            // 小于1分钟
+            if (diff < 60000) {
+                return '刚刚';
+            }
+            
+            // 小于1小时
+            if (diff < 3600000) {
+                const minutes = Math.floor(diff / 60000);
+                return `${minutes}分钟前`;
+            }
+            
+            // 小于1天
+            if (diff < 86400000) {
+                const hours = Math.floor(diff / 3600000);
+                return `${hours}小时前`;
+            }
+            
+            // 超过1天
+            const days = Math.floor(diff / 86400000);
+            return `${days}天前`;
+        }
+
+        // 退出登录
+        function logout() {
+            if (confirm('确定要退出当前用户吗？')) {
+                localStorage.removeItem('currentUserId');
+                window.location.href = 'user-login.html';
+            }
+        }
+
+        // 搜索输入框回车事件
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const query = this.value.trim();
+                if (query) {
+                    performSearch(query, 'semantic');
+                }
+            }
+        });
+
+        // 点击弹窗外部关闭
+        document.getElementById('historyModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeHistoryModal();
+            }
+        });
+
+        // ESC键关闭弹窗
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeHistoryModal();
+            }
+        });
+
+        // 添加CSS动画
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
