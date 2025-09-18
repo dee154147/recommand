@@ -17,6 +17,28 @@ logger = logging.getLogger(__name__)
 
 search_bp = Blueprint('search', __name__, url_prefix='/api/v1/search')
 
+@search_bp.route('/debug', methods=['GET'])
+def debug_search():
+    """调试搜索参数"""
+    try:
+        query = request.args.get('q', '').strip()
+        query_string = request.query_string.decode('utf-8', errors='ignore')
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'original_query': query,
+                'query_string': query_string,
+                'query_bytes': list(request.query_string),
+                'args': dict(request.args)
+            }
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @search_bp.route('/products', methods=['GET'])
 def search_products():
     """
@@ -29,6 +51,24 @@ def search_products():
         search_type = request.args.get('type', 'fuzzy')  # fuzzy 或 semantic
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 20))
+        
+        # 调试信息
+        logger.info(f"原始查询参数: query='{query}', type='{search_type}', page={page}, per_page={per_page}")
+        logger.info(f"查询字符串: {request.query_string}")
+        logger.info(f"查询字符串(UTF-8): {request.query_string.decode('utf-8', errors='ignore')}")
+        
+        # 处理中文字符编码问题
+        if query:
+            try:
+                # 尝试从原始查询字符串中提取参数
+                import urllib.parse
+                parsed_query = urllib.parse.parse_qs(request.query_string.decode('utf-8', errors='ignore'))
+                if 'q' in parsed_query and parsed_query['q']:
+                    query = parsed_query['q'][0]
+                    logger.info(f"重新解析的查询参数: '{query}'")
+            except Exception as e:
+                logger.error(f"解析查询参数失败: {e}")
+                pass
         # category_id = request.args.get('category_id', type=int)  # 去掉分类筛选
         
         if not query:

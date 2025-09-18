@@ -270,7 +270,7 @@ export default {
             q: searchQuery.value.trim(),
             top_k: searchConfig.per_page
           }
-          response = await axios.get('http://localhost:5002/api/v1/recommendation/semantic-search', { params })
+          response = await axios.get('http://localhost:5003/api/v1/recommendation/semantic-search', { params })
           
           if (response.data.success) {
             // 转换语义搜索结果格式
@@ -312,7 +312,7 @@ export default {
             page: searchConfig.page,
             per_page: searchConfig.per_page
           }
-          response = await axios.get('http://localhost:5002/api/v1/search/products', { params })
+          response = await axios.get('http://localhost:5003/api/v1/search/products', { params })
           
           if (response.data.success) {
             searchResults.value = response.data.data
@@ -424,7 +424,7 @@ export default {
       similarProducts.value = []
       
       try {
-        const response = await axios.get(`http://localhost:5002/api/v1/similar-products/${productId}?limit=12&threshold=0.0`)
+        const response = await axios.get(`http://localhost:5003/api/v1/similar-products/${productId}?limit=12&threshold=0.0`)
         
         if (response.data.success) {
           similarProducts.value = response.data.data.similar_products

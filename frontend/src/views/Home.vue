@@ -17,7 +17,7 @@
             <div class="dropdown-menu">
               <router-link to="/product-search" class="dropdown-item">商品检索</router-link>
               <router-link to="/product-management" class="dropdown-item">商品管理</router-link>
-              <router-link to="/user-interaction" class="dropdown-item">用户交互</router-link>
+              <router-link to="/user-login" class="dropdown-item">用户交互</router-link>
             </div>
           </li>
         </ul>

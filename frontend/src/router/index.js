@@ -3,6 +3,7 @@ import Home from '@/views/Home.vue'
 import ProductSearch from '@/views/ProductSearch.vue'
 import ProductManagement from '@/views/ProductManagement.vue'
 import UserInteraction from '@/views/UserInteraction.vue'
+import UserLogin from '@/views/UserLogin.vue'
 
 const routes = [
   {
@@ -19,6 +20,11 @@ const routes = [
     path: '/product-management',
     name: 'ProductManagement',
     component: ProductManagement
+  },
+  {
+    path: '/user-login',
+    name: 'UserLogin',
+    component: UserLogin
   },
   {
     path: '/user-interaction',

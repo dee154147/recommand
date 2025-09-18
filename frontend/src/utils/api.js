@@ -3,10 +3,13 @@ import { ElMessage } from 'element-plus'
 
 // 创建axios实例
 const api = axios.create({
-  baseURL: 'http://localhost:5002/api',
-  timeout: 10000,
+  baseURL: 'http://localhost:5004/api',
+  timeout: 30000, // 增加超时时间到30秒
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
   }
 })
 
@@ -27,7 +30,7 @@ api.interceptors.response.use(
     const { data } = response
     
     // 统一处理响应格式
-    if (data.status === 'success') {
+    if (data.success === true) {
       return data
     } else {
       ElMessage.error(data.message || '请求失败')
@@ -58,6 +61,20 @@ export const productAPI = {
     return api.get('/search', { params: { q: query, ...params } })
   },
   
+  // 语义搜索
+  semanticSearch(query, params = {}) {
+    return api.get('/v1/search/products', { 
+      params: { q: query, type: 'semantic', ...params } 
+    })
+  },
+  
+  // 模糊搜索
+  fuzzySearch(query, params = {}) {
+    return api.get('/v1/search/products', { 
+      params: { q: query, type: 'fuzzy', ...params } 
+    })
+  },
+  
   // 获取商品分类
   getCategories() {
     return api.get('/categories')
@@ -82,23 +99,91 @@ export const recommendationAPI = {
     return api.get('/recommendations', { 
       params: { user_id: userId, limit } 
     })
+  },
+  
+  // 获取个性化推荐 - 使用v2确定性算法
+  getPersonalizedRecommendations(userId, params = {}) {
+    // 添加时间戳和唯一标识符避免浏览器缓存
+    const timestamp = Date.now()
+    const requestId = `req_${timestamp}_${Math.random().toString(36).substr(2, 9)}`
+    console.log(`🌐 API调用 [${requestId}]: 获取个性化推荐 (v2确定性算法)`, { userId, params })
+    
+    return api.get(`/v2/personalized-recommendations/user/${userId}`, { 
+      params: { 
+        ...params, 
+        _t: timestamp,
+        _req: requestId
+      }
+    })
+  },
+  
+  // 获取相似用户
+  getSimilarUsers(userId, limit = 10) {
+    return api.get(`/v1/personalized-recommendations/user/${userId}/similar-users`, {
+      params: { limit }
+    })
+  },
+  
+  // 更新用户画像 - 使用v2确定性算法
+  updateUserProfile(userId) {
+    return api.post(`/v2/personalized-recommendations/user/${userId}/update-profile`)
+  },
+  
+  // 获取偏好推荐
+  getPreferenceRecommendations(userId, params = {}) {
+    return api.get(`/v1/personalized-recommendations/user/${userId}/preferences`, { params })
+  },
+  
+  // 获取趋势推荐
+  getTrendingRecommendations(userId, params = {}) {
+    return api.get(`/v1/personalized-recommendations/user/${userId}/trending`, { params })
+  },
+  
+  // 刷新用户推荐
+  refreshUserRecommendations(userId) {
+    return api.post(`/v1/personalized-recommendations/user/${userId}/refresh`)
   }
 }
 
 export const userAPI = {
+  // 用户注册
+  register(userData) {
+    return api.post('/v1/users/register', userData)
+  },
+  
+  // 用户登录
+  login(credentials) {
+    return api.post('/v1/users/login', credentials)
+  },
+  
   // 获取用户信息
   getUser(id) {
-    return api.get(`/users/${id}`)
+    return api.get(`/v1/users/${id}`)
+  },
+  
+  // 更新用户信息
+  updateUser(id, userData) {
+    return api.put(`/v1/users/${id}`, userData)
   },
   
   // 更新用户偏好
   updateUserPreferences(userId, preferences) {
-    return api.put(`/users/${userId}/preferences`, preferences)
+    return api.put(`/v1/user-interactions/user/${userId}/preferences`, preferences)
   },
   
   // 记录用户行为
   recordUserInteraction(interaction) {
-    return api.post('/user-interactions', interaction)
+    return api.post('/v1/user-interactions/record', interaction)
+  },
+  
+  // 获取用户交互历史
+  getUserInteractions(userId, params = {}) {
+    return api.get(`/v1/user-interactions/user/${userId}`, { params })
+  },
+  
+  // 获取用户交互统计
+  getUserStatistics(userId) {
+    return api.get(`/v1/user-interactions/user/${userId}/statistics`)
   }
 }
 

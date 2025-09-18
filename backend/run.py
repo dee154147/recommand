@@ -43,9 +43,10 @@ def migrate_db():
 
 if __name__ == '__main__':
     # 开发环境运行
+    port = int(os.environ.get('FLASK_RUN_PORT', 5004))
     app.run(
         host='0.0.0.0',
-        port=5002,
+        port=port,
         debug=True,
         threaded=True,  # 启用多线程
         use_reloader=False  # 禁用自动重载以避免端口冲突

@@ -18,6 +18,9 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
     
+    # 设置字符编码
+    app.config['JSON_AS_ASCII'] = False
+    
     # 初始化扩展
     db.init_app(app)
     migrate.init_app(app, db)
@@ -35,10 +38,18 @@ def create_app(config_class=Config):
     from app.api.search_routes import search_bp
     from app.api.recommendation_routes import recommendation_bp
     from app.api.similar_product_routes import similar_product_bp
+    from app.api.user_interaction_routes import user_interaction_bp
+    from app.api.user_routes import user_bp
+    from app.api.personalized_recommendation_routes import personalized_recommendation_bp
+    from app.api.personalized_recommendation_routes_v2 import personalized_recommendation_bp_v2
     app.register_blueprint(data_bp)
     app.register_blueprint(search_bp)
     app.register_blueprint(recommendation_bp)
     app.register_blueprint(similar_product_bp)
+    app.register_blueprint(user_interaction_bp)
+    app.register_blueprint(user_bp)
+    app.register_blueprint(personalized_recommendation_bp)
+    app.register_blueprint(personalized_recommendation_bp_v2)
     
     # 在应用启动时预加载词向量模型（暂时禁用，避免启动卡住）
     # with app.app_context():

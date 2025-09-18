@@ -124,6 +124,10 @@ class User(db.Model):
     preferences = db.Column(db.Text)  # 用户偏好，JSON格式存储
     behavior_vector = db.Column(db.Text)  # 行为向量，JSON格式存储
     
+    # 用户特征向量相关
+    feature_vector = db.Column(db.Text)  # 用户特征向量，JSON格式存储
+    vector_updated_at = db.Column(db.DateTime)  # 特征向量更新时间
+    
     # 时间戳
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -139,6 +143,8 @@ class User(db.Model):
             'username': self.username,
             'email': self.email,
             'preferences': json.loads(self.preferences) if self.preferences else {},
+            'feature_vector': json.loads(self.feature_vector) if self.feature_vector else None,
+            'vector_updated_at': self.vector_updated_at.isoformat() if self.vector_updated_at else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
