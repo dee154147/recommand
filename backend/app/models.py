@@ -126,6 +126,7 @@ class User(db.Model):
     
     # 用户特征向量相关
     feature_vector = db.Column(db.Text)  # 用户特征向量，JSON格式存储
+    feature_vector_pgvector = db.Column(db.Text)  # 用户特征向量，pgvector格式存储（性能优化）
     vector_updated_at = db.Column(db.DateTime)  # 特征向量更新时间
     
     # 时间戳

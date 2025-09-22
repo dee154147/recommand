@@ -386,12 +386,21 @@ export default {
         loadUserInteractions()
       } catch (error) {
         console.error('获取用户信息失败:', error)
-        // 如果用户不存在，尝试创建测试用户
-        try {
-          await registerTestUser()
-        } catch (registerError) {
-          console.error('创建测试用户失败:', registerError)
-          // 使用模拟数据作为最后备选
+        
+        // 检查错误类型
+        if (error.response?.status === 404) {
+          // 用户不存在，尝试创建新用户
+          try {
+            await registerTestUser()
+          } catch (registerError) {
+            console.error('创建测试用户失败:', registerError)
+            ElMessage.error('用户不存在且无法创建新用户')
+            router.push('/user-login')
+            return
+          }
+        } else {
+          // 其他错误（网络问题等），使用模拟数据
+          console.warn('使用模拟用户数据')
           currentUser.value = {
             id: userId,
             name: `用户${userId}`,
@@ -422,17 +431,29 @@ export default {
         loadUserInteractions()
       } catch (error) {
         console.error('用户注册失败:', error)
-        ElMessage.error('用户注册失败，使用模拟数据')
         
-        // 使用模拟用户
-        const userId = localStorage.getItem('currentUserId') || '1'
-        currentUser.value = {
-          id: userId,
-          name: `用户${userId}`,
-          email: `${userId}@example.com`
+        // 检查是否是用户已存在的错误
+        if (error.response?.status === 409 || error.response?.data?.error?.includes('已存在')) {
+          // 用户已存在，尝试重新获取用户信息
+          try {
+            const response = await userAPI.getUser(userId)
+            currentUser.value = {
+              id: response.data.id,
+              name: response.data.username,
+              email: response.data.email
+            }
+            localStorage.setItem('currentUserId', response.data.id.toString())
+            ElMessage.success('用户已存在，登录成功')
+            loadUserInteractions()
+          } catch (getUserError) {
+            console.error('重新获取用户信息失败:', getUserError)
+            throw getUserError
+          }
+        } else {
+          // 其他注册错误
+          ElMessage.error('用户注册失败')
+          throw error
         }
-        localStorage.setItem('currentUserId', userId)
-        loadUserInteractions()
       }
     }
 
@@ -797,6 +818,26 @@ export default {
         })
         
         console.log(`📥 API响应 [${requestId}]:`, response)
+        
+        // 检查API响应状态
+        if (!response.success) {
+          console.log(`⚠️ 推荐API返回失败 [${requestId}]:`, response.error)
+          // 对于"用户尚未生成特征向量"的情况，不显示错误消息
+          if (response.error && response.error.includes('用户尚未生成特征向量')) {
+            console.log('用户尚未生成特征向量，显示空推荐列表')
+            Object.assign(recommendationState, {
+              data: [],
+              loading: false,
+              updating: false
+            })
+            recommendationTotalProducts.value = 0
+            recommendationTotalPages.value = 0
+            return
+          } else {
+            throw new Error(response.error || '推荐获取失败')
+          }
+        }
+        
         const recommendations = response.recommendations || []
         console.log(`📊 提取的推荐数据 [${requestId}]:`, recommendations.length, '个商品')
         

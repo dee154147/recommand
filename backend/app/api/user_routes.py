@@ -121,9 +121,50 @@ def login_user():
             'error': f'用户登录失败: {str(e)}'
         }), 500
 
-@user_bp.route('/<int:user_id>', methods=['GET'])
-def get_user(user_id):
-    """获取用户信息"""
+@user_bp.route('/<string:username>', methods=['GET'])
+def get_user_by_username(username):
+    """根据用户名获取用户信息"""
+    try:
+        # 检查是否是数字ID
+        if username.isdigit():
+            # 如果是数字，按ID查询
+            user_service = UserService()
+            user_data = user_service.get_user_by_id(int(username))
+            if not user_data:
+                return jsonify({
+                    'success': False, 
+                    'error': '用户不存在'
+                }), 404
+            return jsonify({
+                'success': True,
+                'data': user_data,
+                'message': '获取用户信息成功'
+            })
+        else:
+            # 如果是字符串，按用户名查询
+            user = User.query.filter_by(username=username).first()
+            if not user:
+                return jsonify({
+                    'success': False, 
+                    'error': '用户不存在'
+                }), 404
+            
+            return jsonify({
+                'success': True,
+                'data': user.to_dict(),
+                'message': '获取用户信息成功'
+            })
+        
+    except Exception as e:
+        logger.error(f"获取用户信息失败: {str(e)}")
+        return jsonify({
+            'success': False, 
+            'error': f'获取用户信息失败: {str(e)}'
+        }), 500
+
+@user_bp.route('/id/<int:user_id>', methods=['GET'])
+def get_user_by_id(user_id):
+    """根据用户ID获取用户信息"""
     try:
         user_service = UserService()
         user = user_service.get_user_by_id(user_id)

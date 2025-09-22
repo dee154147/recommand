@@ -12,6 +12,7 @@ import numpy as np
 from sqlalchemy import text
 import hashlib
 import time
+from datetime import datetime
 from typing import List, Dict, Tuple, Optional
 
 personalized_recommendation_bp_v2 = Blueprint('personalized_recommendation_v2', __name__, url_prefix='/api/v2/personalized-recommendations')
@@ -150,6 +151,120 @@ class DeterministicRecommendationEngine:
         
         return recommendations
     
+    def calculate_similarities_with_pgvector(self, user_vector: np.ndarray, limit: int) -> List[Dict]:
+        """
+        使用pgvector进行相似度计算 - 高性能版本
+        """
+        try:
+            # 将用户向量转换为pgvector格式
+            user_vector_str = '[' + ','.join(map(str, user_vector.tolist())) + ']'
+            
+            print(f'🔍 使用pgvector计算相似度，用户向量维度: {user_vector.shape}')
+            
+            # 使用pgvector进行相似度计算
+            sql = text("""
+                SELECT 
+                    id, 
+                    name, 
+                    description, 
+                    price, 
+                    category_id, 
+                    image_url, 
+                    tags,
+                    product_vector <=> :user_vector as distance,
+                    1 - (product_vector <=> :user_vector) as similarity
+                FROM products 
+                WHERE product_vector IS NOT NULL
+                ORDER BY product_vector <=> :user_vector
+                LIMIT :limit
+            """)
+            
+            result = db.session.execute(sql, {
+                'user_vector': user_vector_str,
+                'limit': limit
+            })
+            
+            # 格式化结果
+            recommendations = []
+            for row in result.fetchall():
+                product_dict = {
+                    'id': row.id,
+                    'name': row.name,
+                    'description': row.description,
+                    'price': float(row.price) if row.price else None,
+                    'category_id': row.category_id,
+                    'image_url': row.image_url,
+                    'tags': json.loads(row.tags) if row.tags else [],
+                    'similarity_score': float(row.similarity),
+                    'distance': float(row.distance)
+                }
+                recommendations.append(product_dict)
+            
+            print(f'✅ pgvector计算完成，返回 {len(recommendations)} 个推荐结果')
+            return recommendations
+            
+        except Exception as e:
+            print(f'❌ pgvector相似度计算失败: {e}')
+            import traceback
+            traceback.print_exc()
+            return []
+    
+    def calculate_similarities_with_pgvector_optimized(self, user_vector_str: str, limit: int) -> List[Dict]:
+        """
+        使用pgvector进行相似度计算 - 高性能优化版本
+        直接使用预计算的pgvector格式字符串，无需任何转换
+        """
+        try:
+            print(f'🚀 使用优化版pgvector计算相似度，用户向量长度: {len(user_vector_str)}')
+            
+            # 使用pgvector进行相似度计算
+            sql = text("""
+                SELECT 
+                    id, 
+                    name, 
+                    description, 
+                    price, 
+                    category_id, 
+                    image_url, 
+                    tags,
+                    product_vector <=> :user_vector as distance,
+                    1 - (product_vector <=> :user_vector) as similarity
+                FROM products 
+                WHERE product_vector IS NOT NULL
+                ORDER BY product_vector <=> :user_vector
+                LIMIT :limit
+            """)
+            
+            result = db.session.execute(sql, {
+                'user_vector': user_vector_str,
+                'limit': limit
+            })
+            
+            # 格式化结果
+            recommendations = []
+            for row in result.fetchall():
+                product_dict = {
+                    'id': row.id,
+                    'name': row.name,
+                    'description': row.description,
+                    'price': float(row.price) if row.price else None,
+                    'category_id': row.category_id,
+                    'image_url': row.image_url,
+                    'tags': json.loads(row.tags) if row.tags else [],
+                    'similarity_score': float(row.similarity),
+                    'distance': float(row.distance)
+                }
+                recommendations.append(product_dict)
+            
+            print(f'✅ 优化版pgvector计算完成，返回 {len(recommendations)} 个推荐结果')
+            return recommendations
+            
+        except Exception as e:
+            print(f'❌ 优化版pgvector相似度计算失败: {e}')
+            import traceback
+            traceback.print_exc()
+            return []
+    
     def sort_recommendations(self, recommendations: List[Tuple[Dict, float]], limit: int) -> List[Dict]:
         """
         排序推荐结果 - 确定性版本
@@ -183,8 +298,24 @@ class DeterministicRecommendationEngine:
             
             print(f'✅ 用户 {user_id} 存在: {user.username}')
             
-            # 2. 检查是否有已存储的特征向量
-            if not user.feature_vector:
+            # 2. 检查是否有已存储的pgvector格式特征向量（优先使用）
+            if user.feature_vector_pgvector:
+                print(f'✅ 用户 {user_id} 有pgvector格式特征向量，直接使用')
+                user_vector_str = user.feature_vector_pgvector
+            elif user.feature_vector:
+                print(f'⚠️  用户 {user_id} 只有JSON格式特征向量，需要转换')
+                try:
+                    user_vector = np.array(json.loads(user.feature_vector))
+                    user_vector_str = '[' + ','.join(map(str, user_vector.tolist())) + ']'
+                    print(f'✅ 成功转换JSON格式为pgvector格式')
+                except Exception as e:
+                    print(f'❌ 转换特征向量格式失败: {e}')
+                    return {
+                        'success': False,
+                        'error': '用户特征向量格式错误，请重新更新用户画像',
+                        'recommendations': []
+                    }
+            else:
                 print(f'⚠️  用户 {user_id} 没有特征向量')
                 return {
                     'success': False,
@@ -192,54 +323,29 @@ class DeterministicRecommendationEngine:
                     'recommendations': []
                 }
             
-            print(f'✅ 用户 {user_id} 有特征向量，长度: {len(user.feature_vector)}')
-            
-            # 3. 使用已存储的特征向量，不重新计算
-            try:
-                user_vector = np.array(json.loads(user.feature_vector))
-                print(f'✅ 成功解析用户特征向量，维度: {user_vector.shape}')
-            except Exception as e:
-                print(f'❌ 解析用户特征向量失败: {e}')
-                return {
-                    'success': False,
-                    'error': '用户特征向量格式错误，请重新更新用户画像',
-                    'recommendations': []
-                }
-            
-            # 4. 获取候选商品
-            candidate_products = self.get_candidate_products(limit)
-            if not candidate_products:
-                print(f'❌ 没有候选商品')
-                return {
-                    'success': False,
-                    'error': '没有可推荐的商品',
-                    'recommendations': []
-                }
-            
-            print(f'✅ 获取到 {len(candidate_products)} 个候选商品')
-            
-            # 5. 计算相似度
-            recommendations = self.calculate_similarities(user_vector, candidate_products)
+            # 3. 使用pgvector进行相似度计算
+            recommendations = self.calculate_similarities_with_pgvector_optimized(user_vector_str, limit)
             if not recommendations:
-                print(f'❌ 相似度计算失败')
+                print(f'❌ pgvector相似度计算失败')
                 return {
                     'success': False,
                     'error': '相似度计算失败',
                     'recommendations': []
                 }
             
-            print(f'✅ 计算出 {len(recommendations)} 个推荐结果')
+            print(f'✅ 使用pgvector计算出 {len(recommendations)} 个推荐结果')
             
-            # 6. 排序并返回结果
-            final_recommendations = self.sort_recommendations(recommendations, limit)
+            # 5. 返回结果（pgvector已经排序）
+            final_recommendations = recommendations
             
             result = {
                 'success': True,
                 'recommendations': final_recommendations,
                 'total': len(final_recommendations),
                 'user_id': user_id,
-                'algorithm_version': 'v2_deterministic',
-                'feature_vector_source': 'stored'  # 标识使用的是已存储的特征向量
+                'algorithm_version': 'v2_pgvector_precomputed',  # 使用预计算pgvector格式
+                'feature_vector_source': 'precomputed_pgvector',  # 标识使用预计算的pgvector格式
+                'similarity_engine': 'pgvector_optimized'  # 标识使用优化版pgvector
             }
             
             print(f'🎯 返回结果，包含字段: {list(result.keys())}')
@@ -310,8 +416,9 @@ def get_user_recommendations(user_id):
             print(f'特征向量来源: {result.get("feature_vector_source", "unknown")}')
         
         # 添加测试字段
-        result['test_field'] = 'test_value'
+        result['test_field'] = 'pgvector_optimized'
         result['debug_info'] = f'API调用时间: {time.time()}'
+        result['pgvector_test'] = 'enabled'
         
         return jsonify(result)
 
@@ -345,8 +452,10 @@ def update_user_profile(user_id):
                 'error': '无法计算用户偏好向量，请确保有足够的交互数据'
             }), 400
 
-        # 更新用户特征向量
-        user.feature_vector = json.dumps(user_vector.tolist())
+        # 更新用户特征向量 - 同时存储JSON和pgvector格式
+        user.feature_vector = json.dumps(user_vector.tolist())  # JSON格式（兼容性）
+        user.feature_vector_pgvector = '[' + ','.join(map(str, user_vector.tolist())) + ']'  # pgvector格式（性能优化）
+        user.vector_updated_at = datetime.utcnow()  # 更新时间戳
         db.session.commit()
 
         # 获取交互记录数量

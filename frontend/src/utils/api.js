@@ -3,7 +3,7 @@ import { ElMessage } from 'element-plus'
 
 // 创建axios实例
 const api = axios.create({
-  baseURL: 'http://localhost:5004/api',
+  baseURL: 'http://localhost:5001/api',
   timeout: 30000, // 增加超时时间到30秒
   headers: {
     'Content-Type': 'application/json',
@@ -33,11 +33,21 @@ api.interceptors.response.use(
     if (data.success === true) {
       return data
     } else {
-      ElMessage.error(data.message || '请求失败')
-      return Promise.reject(new Error(data.message || '请求失败'))
+      // 对于个性化推荐API，不显示错误消息，让调用方处理
+      if (response.config.url.includes('/personalized-recommendations/')) {
+        return data
+      } else {
+        ElMessage.error(data.message || '请求失败')
+        return Promise.reject(new Error(data.message || '请求失败'))
+      }
     }
   },
   error => {
+    // 对于用户查询API的404错误，不显示错误消息，让调用方处理
+    if (error.response?.status === 404 && error.config?.url?.includes('/users/')) {
+      return Promise.reject(error)
+    }
+    
     const message = error.response?.data?.message || error.message || '网络错误'
     ElMessage.error(message)
     return Promise.reject(error)

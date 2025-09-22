@@ -85,8 +85,8 @@ def record_interaction():
         }), 500
 
 @user_interaction_bp.route('/user/<int:user_id>', methods=['GET'])
-def get_user_interactions(user_id):
-    """获取用户交互历史"""
+def get_user_interactions_by_id(user_id):
+    """获取用户交互历史 - 按用户ID"""
     try:
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
@@ -383,4 +383,56 @@ def health_check():
         return jsonify({
             'success': False, 
             'error': f'健康检查失败: {str(e)}'
+        }), 500
+
+@user_interaction_bp.route('/user/username/<string:username>', methods=['GET'])
+def get_user_interactions_by_username(username):
+    """获取用户交互历史 - 按用户名"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        interaction_type = request.args.get('type', None)
+        
+        # 验证分页参数
+        if page < 1:
+            page = 1
+        if per_page < 1 or per_page > 100:
+            per_page = 20
+        
+        # 按用户名查找用户
+        from app.models import User
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            return jsonify({
+                'success': False, 
+                'error': '用户不存在'
+            }), 404
+        
+        user_service = UserService()
+        result = user_service.get_user_interactions(
+            user_id=user.id,
+            page=page,
+            per_page=per_page
+        )
+        
+        # 如果指定了交互类型，进行过滤
+        if interaction_type:
+            filtered_interactions = [
+                interaction for interaction in result['interactions']
+                if interaction['interaction_type'] == interaction_type
+            ]
+            result['interactions'] = filtered_interactions
+            result['pagination']['total'] = len(filtered_interactions)
+        
+        return jsonify({
+            'success': True,
+            'data': result,
+            'message': '获取用户交互历史成功'
+        })
+        
+    except Exception as e:
+        logger.error(f"获取用户交互历史失败: {str(e)}")
+        return jsonify({
+            'success': False, 
+            'error': f'获取交互历史失败: {str(e)}'
         }), 500

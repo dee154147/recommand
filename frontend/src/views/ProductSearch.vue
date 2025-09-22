@@ -226,6 +226,7 @@
 <script>
 import { ref, reactive, onMounted } from 'vue'
 import axios from 'axios'
+import api from '@/utils/api.js'
 
 export default {
   name: 'ProductSearch',
@@ -270,11 +271,11 @@ export default {
             q: searchQuery.value.trim(),
             top_k: searchConfig.per_page
           }
-          response = await axios.get('http://localhost:5003/api/v1/recommendation/semantic-search', { params })
+          response = await api.get('/v1/recommendation/semantic-search', { params })
           
-          if (response.data.success) {
+          if (response.success) {
             // 转换语义搜索结果格式
-            const semanticResults = response.data.data.results.map(item => ({
+            const semanticResults = response.data.results.map(item => ({
               id: item.id,
               name: item.name,
               description: item.description,
@@ -298,11 +299,11 @@ export default {
               search_info: {
                 query: searchQuery.value.trim(),
                 type: 'semantic',
-                implementation: response.data.data.implementation
+                implementation: response.data.implementation
               }
             }
           } else {
-            alert('语义搜索失败: ' + response.data.error)
+            alert('语义搜索失败: ' + response.error)
           }
         } else {
           // 模糊搜索
@@ -312,12 +313,12 @@ export default {
             page: searchConfig.page,
             per_page: searchConfig.per_page
           }
-          response = await axios.get('http://localhost:5003/api/v1/search/products', { params })
+          response = await api.get('/v1/search/products', { params })
           
-          if (response.data.success) {
-            searchResults.value = response.data.data
+          if (response.success) {
+            searchResults.value = response.data
           } else {
-            alert('搜索失败: ' + response.data.message)
+            alert('搜索失败: ' + response.message)
           }
         }
       } catch (error) {
@@ -424,12 +425,12 @@ export default {
       similarProducts.value = []
       
       try {
-        const response = await axios.get(`http://localhost:5003/api/v1/similar-products/${productId}?limit=12&threshold=0.0`)
+        const response = await api.get(`/v1/similar-products/${productId}?limit=12&threshold=0.0`)
         
-        if (response.data.success) {
-          similarProducts.value = response.data.data.similar_products
+        if (response.success) {
+          similarProducts.value = response.data.similar_products
         } else {
-          console.error('获取相似商品失败:', response.data.error)
+          console.error('获取相似商品失败:', response.error)
           // 显示错误信息而不是模拟数据
           similarProducts.value = []
         }
