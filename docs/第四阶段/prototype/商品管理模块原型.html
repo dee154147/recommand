@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品管理模块 - 智能分析系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #ffffff;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* 背景动画 */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 0, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(0, 255, 0, 0.1) 0%, transparent 50%);
+            animation: backgroundMove 20s ease-in-out infinite;
+        }
+
+        @keyframes backgroundMove {
+            0%, 100% { transform: translateX(0) translateY(0); }
+            25% { transform: translateX(-2%) translateY(-2%); }
+            50% { transform: translateX(2%) translateY(-1%); }
+            75% { transform: translateX(-1%) translateY(2%); }
+        }
+
+        /* 顶部导航栏 */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+            z-index: 1000;
+            padding: 0 5%;
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 70px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-item a {
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+        }
+
+        .nav-item a:hover {
+            color: #00ffff;
+            background: rgba(0, 255, 255, 0.1);
+        }
+
+        .nav-item.active a {
+            color: #00ffff;
+            background: rgba(0, 255, 255, 0.1);
+        }
+
+        /* 主要内容区域 */
+        .main-content {
+            margin-top: 70px;
+            padding: 2rem 5%;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #00ffff, #ff00ff, #00ff00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-subtitle {
+            font-size: 1.2rem;
+            color: #cccccc;
+            margin-bottom: 2rem;
+        }
+
+        /* 功能步骤指示器 */
+        .steps-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 3rem;
+            gap: 2rem;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .step.active {
+            background: rgba(0, 255, 255, 0.1);
+            border-color: #00ffff;
+            box-shadow: 0 5px 15px rgba(0, 255, 255, 0.2);
+        }
+
+        .step.completed {
+            background: rgba(0, 255, 0, 0.1);
+            border-color: #00ff00;
+        }
+
+        .step-number {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(0, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .step.active .step-number {
+            background: #00ffff;
+            color: #000;
+        }
+
+        .step.completed .step-number {
+            background: #00ff00;
+            color: #000;
+        }
+
+        .step-text {
+            font-weight: 500;
+        }
+
+        /* 功能区域 */
+        .function-area {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .function-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: #00ffff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* 商品描述输入区域 */
+        .description-input {
+            width: 100%;
+            min-height: 120px;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(0, 255, 255, 0.2);
+            border-radius: 12px;
+            color: #ffffff;
+            font-size: 1rem;
+            resize: vertical;
+            transition: all 0.3s ease;
+        }
+
+        .description-input:focus {
+            outline: none;
+            border-color: #00ffff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .description-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .input-hint {
+            font-size: 0.9rem;
+            color: #888888;
+            margin-top: 0.5rem;
+        }
+
+        /* 按钮样式 */
+        .btn {
+            padding: 0.8rem 2rem;
+            border: none;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            color: #ffffff;
+            box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 255, 255, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #ff6b6b, #ffa500);
+            color: #ffffff;
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* 标签展示区域 */
+        .tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: rgba(0, 255, 255, 0.1);
+            color: #00ffff;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .tag:hover {
+            background: rgba(0, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        /* 相似商品展示 */
+        .similar-products {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .product-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            border-color: #00ffff;
+            box-shadow: 0 15px 30px rgba(0, 255, 255, 0.2);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 150px;
+            background: rgba(0, 255, 255, 0.1);
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: #00ffff;
+        }
+
+        .product-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #ffffff;
+        }
+
+        .product-category {
+            font-size: 0.9rem;
+            color: #888888;
+            margin-bottom: 0.5rem;
+        }
+
+        .similarity-score {
+            font-size: 0.9rem;
+            color: #ffa500;
+            font-weight: 500;
+        }
+
+        /* 商业分析报告 */
+        .analysis-report {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 2rem;
+            margin-top: 1rem;
+        }
+
+        .analysis-section {
+            margin-bottom: 2rem;
+        }
+
+        .analysis-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #00ffff;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            color: #888888;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #00ffff;
+        }
+
+
+        /* 指标说明图标 */
+        .metric-info-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(0, 255, 255, 0.2);
+            border: 1px solid rgba(0, 255, 255, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.8rem;
+            color: #00ffff;
+        }
+
+        .metric-info-icon:hover {
+            background: rgba(0, 255, 255, 0.3);
+            border-color: #00ffff;
+            transform: scale(1.1);
+        }
+
+        /* 指标说明弹窗 */
+        .metric-info-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .metric-info-modal.show {
+            display: flex;
+        }
+
+        .metric-info-content {
+            background: rgba(20, 20, 20, 0.95);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 20px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .metric-info-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2rem;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+        }
+
+        .metric-info-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #00ffff;
+        }
+
+        .metric-info-close {
+            background: none;
+            border: none;
+            color: #ffffff;
+            font-size: 2rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .metric-info-close:hover {
+            background: rgba(255, 0, 0, 0.2);
+            color: #ff6b6b;
+        }
+
+        .metric-info-body {
+            padding: 2rem;
+        }
+
+        .metric-info-section {
+            margin-bottom: 2rem;
+        }
+
+        .metric-info-section h4 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #00ffff;
+            margin-bottom: 1rem;
+        }
+
+        .metric-info-section p {
+            color: #cccccc;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .metric-info-formula {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 10px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            color: #00ffff;
+            margin: 1rem 0;
+        }
+
+        .metric-info-steps {
+            list-style: none;
+            padding: 0;
+        }
+
+        .metric-info-steps li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: #cccccc;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .metric-info-steps li:last-child {
+            border-bottom: none;
+        }
+
+        .metric-info-steps li::before {
+            content: "•";
+            color: #00ffff;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        .insights-list {
+            list-style: none;
+        }
+
+        .insights-list li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: #cccccc;
+        }
+
+        .insights-list li:last-child {
+            border-bottom: none;
+        }
+
+        /* 加载状态 */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            color: #00ffff;
+        }
+
+        .loading-spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(0, 255, 255, 0.3);
+            border-top: 3px solid #00ffff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+            }
+
+            .page-title {
+                font-size: 2rem;
+            }
+
+            .steps-indicator {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .similar-products {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-menu {
+                display: none;
+            }
+        }
+
+        /* 隐藏/显示功能区域 */
+        .function-area.hidden {
+            display: none;
+        }
+
+        .function-area.show {
+            display: block;
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        /* 默认隐藏功能区域2-4 */
+        #area2, #area3, #area4 {
+            display: none;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 背景动画层 -->
+    <div class="bg-animation"></div>
+    
+    <!-- 顶部导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">智能推荐系统</div>
+            <ul class="nav-menu">
+                <li class="nav-item"><a href="/">首页</a></li>
+                <li class="nav-item"><a href="/product-search">商品检索</a></li>
+                <li class="nav-item"><a href="/product-management">商品管理</a></li>
+                <li class="nav-item active"><a href="/product-analysis">智能分析</a></li>
+                <li class="nav-item"><a href="/user-interaction">用户交互</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- 主要内容区域 -->
+    <main class="main-content">
+        <!-- 页面标题 -->
+        <div class="page-header">
+            <h1 class="page-title">商品管理模块 - 智能分析</h1>
+            <p class="page-subtitle">基于LLM的商品标签生成、相似商品检索和商业特征分析</p>
+        </div>
+
+        <!-- 功能步骤指示器 -->
+        <div class="steps-indicator">
+            <div class="step active" id="step1">
+                <div class="step-number">1</div>
+                <div class="step-text">商品描述输入</div>
+            </div>
+            <div class="step" id="step2">
+                <div class="step-number">2</div>
+                <div class="step-text">标签生成</div>
+            </div>
+            <div class="step" id="step3">
+                <div class="step-number">3</div>
+                <div class="step-text">相似商品检索</div>
+            </div>
+            <div class="step" id="step4">
+                <div class="step-number">4</div>
+                <div class="step-text">商业分析</div>
+            </div>
+        </div>
+
+        <!-- 功能区域1：商品描述输入 -->
+        <div class="function-area" id="area1">
+            <h2 class="function-title">
+                <span>📝</span>
+                商品描述输入
+            </h2>
+            <p style="color: #cccccc; margin-bottom: 1rem;">
+                请输入您要分析的商品描述，系统将基于LLM自动生成商品标签。
+            </p>
+            <textarea 
+                class="description-input" 
+                id="productDescription"
+                placeholder="请输入商品描述，例如：这是一款高性能的智能手机，采用最新的处理器，拥有出色的拍照功能和长续航能力，适合商务人士和摄影爱好者使用..."
+            ></textarea>
+            <div class="input-hint">
+                建议输入50-500字的详细描述，包含商品的主要特征、功能、用途等信息
+            </div>
+            <div style="margin-top: 1.5rem; text-align: center;">
+                <button class="btn btn-primary" id="generateTagsBtn" onclick="generateTags()">
+                    🤖 生成商品标签
+                </button>
+            </div>
+        </div>
+
+        <!-- 功能区域2：标签生成结果 -->
+        <div class="function-area hidden" id="area2">
+            <h2 class="function-title">
+                <span>🏷️</span>
+                生成的商品标签
+            </h2>
+            <div id="tagsContainer" class="tags-container">
+                <!-- 标签将通过JavaScript动态生成 -->
+            </div>
+            <div style="margin-top: 1.5rem; text-align: center;">
+                <button class="btn btn-secondary" id="findSimilarBtn" onclick="findSimilarProducts()">
+                    🔍 查找相似商品
+                </button>
+            </div>
+        </div>
+
+        <!-- 功能区域3：相似商品展示 -->
+        <div class="function-area hidden" id="area3">
+            <h2 class="function-title">
+                <span>🔍</span>
+                相似商品检索结果
+            </h2>
+            <div id="similarProductsContainer" class="similar-products">
+                <!-- 相似商品将通过JavaScript动态生成 -->
+            </div>
+            <div style="margin-top: 1.5rem; text-align: center;">
+                <button class="btn btn-primary" id="analyzeBtn" onclick="analyzeCommercialFeatures()">
+                    📊 进行商业分析
+                </button>
+            </div>
+        </div>
+
+        <!-- 功能区域4：商业分析报告 -->
+        <div class="function-area hidden" id="area4">
+            <h2 class="function-title">
+                <span>📊</span>
+                商业特征分析报告
+            </h2>
+            <div id="analysisReport" class="analysis-report">
+                <!-- 分析报告将通过JavaScript动态生成 -->
+            </div>
+            <div style="margin-top: 1.5rem; text-align: center;">
+                <button class="btn btn-secondary" onclick="resetAnalysis()">
+                    🔄 重新分析
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- 指标说明弹窗 -->
+    <div id="metricInfoModal" class="metric-info-modal">
+        <div class="metric-info-content">
+            <div class="metric-info-header">
+                <h3 class="metric-info-title" id="metricInfoTitle">指标说明</h3>
+                <button class="metric-info-close" onclick="closeMetricInfo()">&times;</button>
+            </div>
+            <div class="metric-info-body" id="metricInfoBody">
+                <!-- 指标说明内容将通过JavaScript动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 模拟数据
+        const mockTags = ['智能手机', '高性能', '拍照功能', '长续航', '商务手机'];
+        const mockSimilarProducts = [
+            { id: 1, name: 'iPhone 15 Pro', category: '智能手机', similarity: 0.95, icon: '📱' },
+            { id: 2, name: 'Samsung Galaxy S24', category: '智能手机', similarity: 0.92, icon: '📱' },
+            { id: 3, name: '华为Mate 60 Pro', category: '智能手机', similarity: 0.89, icon: '📱' },
+            { id: 4, name: '小米14 Ultra', category: '智能手机', similarity: 0.87, icon: '📱' },
+            { id: 5, name: 'OPPO Find X7', category: '智能手机', similarity: 0.85, icon: '📱' },
+            { id: 6, name: 'vivo X100 Pro', category: '智能手机', similarity: 0.83, icon: '📱' },
+            { id: 7, name: 'OnePlus 12', category: '智能手机', similarity: 0.81, icon: '📱' },
+            { id: 8, name: 'Google Pixel 8', category: '智能手机', similarity: 0.79, icon: '📱' },
+            { id: 9, name: 'Sony Xperia 1 V', category: '智能手机', similarity: 0.77, icon: '📱' },
+            { id: 10, name: 'Nothing Phone 2', category: '智能手机', similarity: 0.75, icon: '📱' }
+        ];
+
+        // 清空后续步骤的信息
+        function clearSubsequentSteps() {
+            console.log('清空后续步骤信息');
+            
+            // 隐藏区域3和区域4
+            const area3 = document.getElementById('area3');
+            const area4 = document.getElementById('area4');
+            
+            if (area3) {
+                area3.style.display = 'none';
+                area3.classList.remove('show');
+            }
+            
+            if (area4) {
+                area4.style.display = 'none';
+                area4.classList.remove('show');
+            }
+            
+            // 重置步骤指示器
+            const step2 = document.getElementById('step2');
+            const step3 = document.getElementById('step3');
+            const step4 = document.getElementById('step4');
+            
+            if (step2) {
+                step2.classList.remove('active', 'completed');
+            }
+            if (step3) {
+                step3.classList.remove('active', 'completed');
+            }
+            if (step4) {
+                step4.classList.remove('active', 'completed');
+            }
+            
+            // 清空相似商品列表
+            const similarProductsList = document.getElementById('similarProductsList');
+            if (similarProductsList) {
+                similarProductsList.innerHTML = '';
+            }
+            
+            // 清空商业分析报告
+            const analysisReport = document.getElementById('analysisReport');
+            if (analysisReport) {
+                analysisReport.innerHTML = '';
+            }
+            
+            // 重置按钮状态
+            const findSimilarBtn = document.getElementById('findSimilarBtn');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            
+            if (findSimilarBtn) {
+                findSimilarBtn.disabled = false;
+                findSimilarBtn.innerHTML = '🔍 查找相似商品';
+            }
+            
+            if (analyzeBtn) {
+                analyzeBtn.disabled = false;
+                analyzeBtn.innerHTML = '📊 分析商业特征';
+            }
+            
+            console.log('后续步骤信息已清空');
+        }
+
+        // 生成标签
+        function generateTags() {
+            console.log('generateTags函数被调用');
+            const description = document.getElementById('productDescription').value;
+            if (!description.trim()) {
+                alert('请输入商品描述');
+                return;
+            }
+
+            // 清空后续步骤的信息
+            clearSubsequentSteps();
+
+            // 显示加载状态
+            const btn = document.getElementById('generateTagsBtn');
+            btn.disabled = true;
+            btn.innerHTML = '🔄 生成中...';
+
+            // 模拟API调用
+            setTimeout(() => {
+                // 显示标签
+                const tagsContainer = document.getElementById('tagsContainer');
+                tagsContainer.innerHTML = '';
+                mockTags.forEach(tag => {
+                    const tagElement = document.createElement('div');
+                    tagElement.className = 'tag';
+                    tagElement.textContent = tag;
+                    tagsContainer.appendChild(tagElement);
+                });
+
+                // 显示区域2
+                const area2 = document.getElementById('area2');
+                console.log('显示区域2:', area2);
+                area2.style.display = 'block';
+                area2.classList.add('show');
+                console.log('区域2显示状态:', area2.style.display);
+                
+                // 更新步骤指示器
+                document.getElementById('step1').classList.remove('active');
+                document.getElementById('step1').classList.add('completed');
+                document.getElementById('step2').classList.add('active');
+
+                // 恢复按钮
+                btn.disabled = false;
+                btn.innerHTML = '🤖 生成商品标签';
+            }, 2000);
+        }
+
+        // 查找相似商品
+        function findSimilarProducts() {
+            const btn = document.getElementById('findSimilarBtn');
+            btn.disabled = true;
+            btn.innerHTML = '🔄 检索中...';
+
+            setTimeout(() => {
+                // 显示相似商品
+                const container = document.getElementById('similarProductsContainer');
+                container.innerHTML = '';
+                mockSimilarProducts.forEach(product => {
+                    const productCard = document.createElement('div');
+                    productCard.className = 'product-card';
+                    productCard.innerHTML = `
+                        <div class="product-image">${product.icon}</div>
+                        <div class="product-name">${product.name}</div>
+                        <div class="product-category">${product.category}</div>
+                        <div class="similarity-score">相似度: ${(product.similarity * 100).toFixed(1)}%</div>
+                    `;
+                    container.appendChild(productCard);
+                });
+
+                // 显示区域3
+                const area3 = document.getElementById('area3');
+                area3.style.display = 'block';
+                area3.classList.add('show');
+                
+                // 更新步骤指示器
+                document.getElementById('step2').classList.remove('active');
+                document.getElementById('step2').classList.add('completed');
+                document.getElementById('step3').classList.add('active');
+
+                // 恢复按钮
+                btn.disabled = false;
+                btn.innerHTML = '🔍 查找相似商品';
+            }, 1500);
+        }
+
+        // 商业分析
+        function analyzeCommercialFeatures() {
+            const btn = document.getElementById('analyzeBtn');
+            btn.disabled = true;
+            btn.innerHTML = '🔄 分析中...';
+
+            setTimeout(() => {
+                // 生成分析报告
+                const reportContainer = document.getElementById('analysisReport');
+                reportContainer.innerHTML = `
+                    <div class="analysis-section">
+                        <h3 class="analysis-title">📈 受欢迎程度分析</h3>
+                        <div class="metric-card">
+                            <div class="metric-label">
+                                受欢迎程度评分
+                                <div class="metric-info-icon" onclick="showMetricInfo('popularity')">?</div>
+                            </div>
+                            <div class="metric-value">8.5/10</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">
+                                用户满意度
+                                <div class="metric-info-icon" onclick="showMetricInfo('satisfaction')">?</div>
+                            </div>
+                            <div class="metric-value">92%</div>
+                        </div>
+                    </div>
+
+                    <div class="analysis-section">
+                        <h3 class="analysis-title">👥 用户群体特征</h3>
+                        <div class="metric-card">
+                            <div class="metric-label">
+                                主要用户群体
+                                <div class="metric-info-icon" onclick="showMetricInfo('userGroup')">?</div>
+                            </div>
+                            <div class="metric-value">商务人士 (65%)</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">
+                                年龄分布
+                                <div class="metric-info-icon" onclick="showMetricInfo('ageDistribution')">?</div>
+                            </div>
+                            <div class="metric-value">25-45岁 (78%)</div>
+                        </div>
+                    </div>
+
+                    <div class="analysis-section">
+                        <h3 class="analysis-title">💡 商业洞察</h3>
+                        <ul class="insights-list">
+                            <li>• 该商品在商务用户群体中具有很高的受欢迎程度</li>
+                            <li>• 拍照功能和续航能力是用户最关注的特征</li>
+                            <li>• 与同类产品相比，在性能方面具有明显优势</li>
+                            <li>• 建议在营销中重点突出商务场景和摄影功能</li>
+                            <li>• 目标用户群体主要集中在25-45岁的商务人士</li>
+                        </ul>
+                    </div>
+                `;
+
+                // 显示区域4
+                const area4 = document.getElementById('area4');
+                area4.style.display = 'block';
+                area4.classList.add('show');
+                
+                // 更新步骤指示器
+                document.getElementById('step3').classList.remove('active');
+                document.getElementById('step3').classList.add('completed');
+                document.getElementById('step4').classList.add('active');
+
+                // 恢复按钮
+                btn.disabled = false;
+                btn.innerHTML = '📊 进行商业分析';
+            }, 3000);
+        }
+
+        // 重新分析
+        function resetAnalysis() {
+            // 隐藏所有功能区域
+            document.querySelectorAll('.function-area').forEach(area => {
+                area.style.display = 'none';
+                area.classList.remove('show');
+            });
+
+            // 重置步骤指示器
+            document.querySelectorAll('.step').forEach(step => {
+                step.classList.remove('active', 'completed');
+            });
+            document.getElementById('step1').classList.add('active');
+
+            // 清空输入
+            document.getElementById('productDescription').value = '';
+        }
+
+        // 指标说明数据
+        const metricInfoData = {
+            popularity: {
+                title: '受欢迎程度评分',
+                description: '基于用户交互行为计算的商品受欢迎程度评分',
+                formula: '受欢迎程度 = (点击次数 × 0.3 + 查看次数 × 0.4 + 收藏次数 × 0.5 + 购买次数 × 1.0) / 总用户数 × 10',
+                steps: [
+                    '获取相似商品的用户交互数据',
+                    '收集各类交互行为数据（点击、查看、收藏、购买）',
+                    '计算各类交互行为的权重分数',
+                    '统计交互用户总数',
+                    '计算加权平均分数',
+                    '转换为10分制评分'
+                ],
+                details: '该指标综合考虑了相似商品的用户交互行为，通过加权计算得出商品的受欢迎程度。首先获取top10相似商品的用户交互历史，然后分析用户的点击、查看、收藏、购买等行为，权重设置：点击(0.3)、查看(0.4)、收藏(0.5)、购买(1.0)。'
+            },
+            satisfaction: {
+                title: '用户满意度',
+                description: '基于用户反馈和交互行为计算的满意度指标',
+                formula: '满意度 = (正面交互次数 - 负面交互次数) / 总交互次数 × 100%',
+                steps: [
+                    '获取相似商品的用户交互数据',
+                    '统计用户正面交互行为（收藏、购买）',
+                    '统计用户负面交互行为（不推荐、差评）',
+                    '计算净正面交互次数',
+                    '除以总交互次数',
+                    '转换为百分比'
+                ],
+                details: '该指标通过分析相似商品的用户交互数据，计算净满意度。首先获取top10相似商品的用户交互历史，然后分析用户的正面和负面交互行为，计算净满意度。正面行为包括收藏、购买等，负面行为包括不推荐、差评等。'
+            },
+            userGroup: {
+                title: '主要用户群体',
+                description: '基于用户行为模式分析得出的主要用户群体特征',
+                formula: '用户群体 = 分析用户交互模式 → 聚类分析 → 识别主要群体',
+                steps: [
+                    '获取相似商品的用户交互数据',
+                    '收集用户交互历史数据',
+                    '分析用户行为模式',
+                    '进行用户聚类分析',
+                    '识别主要用户群体',
+                    '计算群体占比'
+                ],
+                details: '该指标通过机器学习聚类算法，分析相似商品的用户交互行为模式，识别出主要的用户群体类型，如商务人士、学生、家庭用户等。首先获取top10相似商品的用户交互历史，然后进行聚类分析。',
+                clusteringInfo: {
+                    algorithm: 'K-means聚类算法',
+                    dataPreprocessing: [
+                        '收集相似商品的用户交互数据',
+                        '提取用户行为特征向量（点击频率、浏览时长、购买偏好等）',
+                        '数据标准化处理，消除量纲影响',
+                        '特征降维，提取主要特征'
+                    ],
+                    algorithmSteps: [
+                        '随机初始化K个聚类中心',
+                        '计算每个用户到聚类中心的距离',
+                        '将用户分配到最近的聚类中心',
+                        '重新计算聚类中心位置',
+                        '重复步骤2-4直到收敛'
+                    ],
+                    parameters: {
+                        kValue: '使用肘部法则确定最优K值',
+                        distance: '欧几里得距离计算用户相似度',
+                        convergence: '聚类中心变化小于阈值',
+                        maxIterations: '防止算法不收敛'
+                    },
+                    userGroups: {
+                        business: '商务人士群体: 高频购买、偏好高端商品、工作时间活跃',
+                        student: '学生群体: 价格敏感、偏好性价比商品、晚间活跃',
+                        family: '家庭用户群体: 批量购买、偏好家庭用品、周末活跃',
+                        fashion: '时尚用户群体: 关注新品、偏好时尚商品、社交分享多'
+                    },
+                    technicalDetails: '聚类分析使用scikit-learn库的KMeans算法实现，通过分析用户的行为模式、购买偏好、活跃时间等特征，自动识别出不同的用户群体，为精准营销和个性化推荐提供数据支持。'
+                }
+            },
+            ageDistribution: {
+                title: '年龄分布',
+                description: '基于用户画像数据统计的年龄分布情况',
+                formula: '年龄分布 = 统计各年龄段用户数量 / 总用户数 × 100%',
+                steps: [
+                    '获取相似商品的用户交互数据',
+                    '收集用户年龄信息',
+                    '按年龄段分组统计',
+                    '计算各年龄段用户数量',
+                    '计算年龄分布百分比',
+                    '识别主要年龄段'
+                ],
+                details: '该指标通过分析相似商品的用户画像中的年龄信息，统计各年龄段的用户分布情况，帮助了解目标用户群体的年龄特征。首先获取top10相似商品的用户交互历史，然后分析用户画像中的年龄信息。'
+            }
+        };
+
+        // 显示指标说明
+        function showMetricInfo(metricType) {
+            const modal = document.getElementById('metricInfoModal');
+            const title = document.getElementById('metricInfoTitle');
+            const body = document.getElementById('metricInfoBody');
+            
+            const info = metricInfoData[metricType];
+            if (!info) return;
+            
+            title.textContent = info.title;
+            
+            // 为主要用户群体添加聚类分析信息
+            if (metricType === 'userGroup' && info.clusteringInfo) {
+                body.innerHTML = `
+                    <div class="metric-info-section">
+                        <h4>📊 指标说明</h4>
+                        <p>${info.description}</p>
+                    </div>
+                    
+                    <div class="metric-info-section">
+                        <h4>🧮 计算公式</h4>
+                        <div class="metric-info-formula">${info.formula}</div>
+                    </div>
+                    
+                    <div class="metric-info-section">
+                        <h4>📋 计算步骤</h4>
+                        <ol class="metric-info-steps">
+                            ${info.steps.map(step => `<li>${step}</li>`).join('')}
+                        </ol>
+                    </div>
+                    
+                    <div class="metric-info-section">
+                        <h4>🧠 聚类分析算法</h4>
+                        <p>使用${info.clusteringInfo.algorithm}对用户行为数据进行聚类分析，识别不同的用户群体特征。</p>
+                    </div>
+                    
+                    <div class="metric-info-section">
+                        <h4>📊 数据预处理</h4>
+                        <ol class="metric-info-steps">
+                            ${info.clusteringInfo.dataPreprocessing.map(step => `<li>${step}</li>`).join('')}
+                        </ol>
+                    </div>
+                    
+                    <div class="metric-info-section">
+                        <h4>🔢 聚类算法实现</h4>
+                        <div class="metric-info-formula">
+                            K-means算法步骤：<br>
+                            ${info.clusteringInfo.algorithmSteps.map((step, index) => `${index + 1}. ${step}`).join('<br>')}
+                        </div>
+                    </div>
+                    
+                    <div class="metric-info-section">
+                        <h4>📈 聚类参数设置</h4>
+                        <ul class="metric-info-steps">
+                            <li><strong>聚类数量K:</strong> ${info.clusteringInfo.parameters.kValue}</li>
+                            <li><strong>距离度量:</strong> ${info.clusteringInfo.parameters.distance}</li>
+                            <li><strong>收敛条件:</strong> ${info.clusteringInfo.parameters.convergence}</li>
+                            <li><strong>最大迭代:</strong> ${info.clusteringInfo.parameters.maxIterations}</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="metric-info-section">
+                        <h4>🎯 用户群体识别</h4>
+                        <p>基于聚类结果，分析每个群体的行为特征：</p>
+                        <ul class="metric-info-steps">
+                            <li><strong>${info.clusteringInfo.userGroups.business}</strong></li>
+                            <li><strong>${info.clusteringInfo.userGroups.student}</strong></li>
+                            <li><strong>${info.clusteringInfo.userGroups.family}</strong></li>
+                            <li><strong>${info.clusteringInfo.userGroups.fashion}</strong></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="metric-info-section">
+                        <h4>💡 技术细节</h4>
+                        <p>${info.clusteringInfo.technicalDetails}</p>
+                    </div>
+                `;
+            } else {
+                // 其他指标的原有显示逻辑
+                body.innerHTML = `
+                    <div class="metric-info-section">
+                        <h4>📊 指标说明</h4>
+                        <p>${info.description}</p>
+                    </div>
+                    
+                    <div class="metric-info-section">
+                        <h4>🧮 计算公式</h4>
+                        <div class="metric-info-formula">${info.formula}</div>
+                    </div>
+                    
+                    <div class="metric-info-section">
+                        <h4>📋 计算步骤</h4>
+                        <ol class="metric-info-steps">
+                            ${info.steps.map(step => `<li>${step}</li>`).join('')}
+                        </ol>
+                    </div>
+                    
+                    <div class="metric-info-section">
+                        <h4>💡 详细说明</h4>
+                        <p>${info.details}</p>
+                    </div>
+                `;
+            }
+            
+            modal.classList.add('show');
+        }
+
+        // 关闭指标说明
+        function closeMetricInfo() {
+            const modal = document.getElementById('metricInfoModal');
+            modal.classList.remove('show');
+        }
+
+
+        // 点击弹窗外部关闭
+        document.getElementById('metricInfoModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeMetricInfo();
+            }
+        });
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('商品管理模块原型页面加载完成');
+        });
+    </script>
+</body>
+</html>
