@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单Vue弹窗测试</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: #1a1a1a;
+            border: 1px solid #00ffff;
+            border-radius: 10px;
+            padding: 20px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .metric-info-icon {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            background: #00ffff;
+            color: #000;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 20px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        
+        .metric-info-icon:hover {
+            background: #00cccc;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div>
+            <h3>测试指标</h3>
+            <div>
+                <span>受欢迎程度评分</span>
+                <span class="metric-info-icon" @click="showMetricInfo('popularity')">?</span>
+                <span>8.5/10</span>
+            </div>
+        </div>
+
+        <!-- 弹窗 -->
+        <div class="modal" :class="{ show: showModal }">
+            <div class="modal-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3>{{ modalTitle }}</h3>
+                    <button @click="closeModal" style="background: none; border: none; color: #00ffff; font-size: 24px; cursor: pointer;">&times;</button>
+                </div>
+                <div v-html="modalBody"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref } = Vue;
+        
+        createApp({
+            setup() {
+                const showModal = ref(false);
+                const modalTitle = ref('');
+                const modalBody = ref('');
+                
+                const showMetricInfo = (metricType) => {
+                    console.log('showMetricInfo called with:', metricType);
+                    
+                    if (metricType === 'popularity') {
+                        modalTitle.value = '受欢迎程度评分';
+                        modalBody.value = `
+                            <h4>📊 指标说明</h4>
+                            <p>基于用户交互行为计算的商品受欢迎程度评分</p>
+                            <h4>🧮 计算公式</h4>
+                            <div style="background: #333; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                                受欢迎程度 = (点击次数 × 0.3 + 查看次数 × 0.4 + 收藏次数 × 0.5 + 购买次数 × 1.0) / 总用户数 × 10
+                            </div>
+                        `;
+                    }
+                    
+                    showModal.value = true;
+                    console.log('Modal should be visible now, showModal:', showModal.value);
+                };
+                
+                const closeModal = () => {
+                    console.log('closeModal called');
+                    showModal.value = false;
+                };
+                
+                return {
+                    showModal,
+                    modalTitle,
+                    modalBody,
+                    showMetricInfo,
+                    closeModal
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

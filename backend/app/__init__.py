@@ -42,6 +42,8 @@ def create_app(config_class=Config):
     from app.api.user_routes import user_bp
     from app.api.personalized_recommendation_routes import personalized_recommendation_bp
     from app.api.personalized_recommendation_routes_v2 import personalized_recommendation_bp_v2
+    from app.api.llm_routes import llm_bp
+    from app.api.product_management_routes import product_management_bp
     app.register_blueprint(data_bp)
     app.register_blueprint(search_bp)
     app.register_blueprint(recommendation_bp)
@@ -50,6 +52,8 @@ def create_app(config_class=Config):
     app.register_blueprint(user_bp)
     app.register_blueprint(personalized_recommendation_bp)
     app.register_blueprint(personalized_recommendation_bp_v2)
+    app.register_blueprint(llm_bp)
+    app.register_blueprint(product_management_bp)
     
     # 在应用启动时预加载词向量模型（暂时禁用，避免启动卡住）
     # with app.app_context():
