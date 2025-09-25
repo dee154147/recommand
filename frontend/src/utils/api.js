@@ -1,9 +1,24 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
+// 自动检测API基础URL
+const getApiBaseUrl = () => {
+  // 获取当前主机地址
+  const hostname = window.location.hostname
+  const protocol = window.location.protocol
+  
+  // 如果是localhost或127.0.0.1，使用localhost
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:5004/api'
+  }
+  
+  // 如果是局域网IP，使用相同的主机地址
+  return `${protocol}//${hostname}:5004/api`
+}
+
 // 创建axios实例
 const api = axios.create({
-  baseURL: 'http://localhost:5001/api',
+  baseURL: getApiBaseUrl(),
   timeout: 30000, // 增加超时时间到30秒
   headers: {
     'Content-Type': 'application/json',
