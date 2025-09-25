@@ -121,56 +121,52 @@
         <div class="team-grid">
           <div class="team-card fade-in">
             <div class="team-avatar">👨‍💻</div>
-            <h3 class="team-name">张明</h3>
-            <p class="team-position">技术总监</p>
+            <h3 class="team-name">刘志超</h3>
+            <p class="team-position">开发工程师</p>
             <p class="team-bio">
-              拥有10年AI算法研发经验，专注于推荐系统和机器学习领域，
-              曾任职于知名互联网公司，主导过多个大型推荐系统项目。
+              全栈开发工程师，精通前后端技术栈，
+              专注于推荐系统架构设计和性能优化，
+              具备丰富的项目开发经验。
             </p>
           </div>
           <div class="team-card fade-in">
-            <div class="team-avatar">👩‍🔬</div>
-            <h3 class="team-name">李雪</h3>
-            <p class="team-position">算法工程师</p>
+            <div class="team-avatar">👩‍💼</div>
+            <h3 class="team-name">郑静沙</h3>
+            <p class="team-position">运营经理</p>
             <p class="team-bio">
-              机器学习博士，在深度学习推荐算法方面有深入研究，
-              发表多篇顶级会议论文，具备丰富的算法优化经验。
+              资深运营专家，专注于用户增长和产品运营，
+              深度理解用户需求，擅长数据分析和运营策略制定，
+              具备丰富的互联网运营经验。
             </p>
           </div>
           <div class="team-card fade-in">
             <div class="team-avatar">👨‍💼</div>
-            <h3 class="team-name">王强</h3>
+            <h3 class="team-name">颜惠珍</h3>
             <p class="team-position">产品经理</p>
             <p class="team-bio">
               资深产品经理，专注电商和推荐系统产品设计，
-              深度理解用户需求，擅长将技术转化为产品价值。
-            </p>
-          </div>
-          <div class="team-card fade-in">
-            <div class="team-avatar">👩‍💻</div>
-            <h3 class="team-name">陈静</h3>
-            <p class="team-position">前端工程师</p>
-            <p class="team-bio">
-              前端技术专家，精通Vue.js和React框架，
-              注重用户体验设计，致力于打造现代化的用户界面。
+              深度理解用户需求，擅长将技术转化为产品价值，
+              具备丰富的产品规划和设计经验。
             </p>
           </div>
           <div class="team-card fade-in">
             <div class="team-avatar">👨‍🔧</div>
-            <h3 class="team-name">刘伟</h3>
-            <p class="team-position">后端工程师</p>
+            <h3 class="team-name">方钟城</h3>
+            <p class="team-position">项目经理</p>
             <p class="team-bio">
-              后端架构师，擅长Python和微服务架构设计，
-              具备丰富的分布式系统开发和运维经验。
+              资深项目经理，擅长项目管理和团队协调，
+              具备丰富的敏捷开发管理经验，
+              专注于项目进度控制和质量管理。
             </p>
           </div>
           <div class="team-card fade-in">
-            <div class="team-avatar">👩‍🎨</div>
-            <h3 class="team-name">赵丽</h3>
-            <p class="team-position">UI/UX设计师</p>
+            <div class="team-avatar">🤖</div>
+            <h3 class="team-name">Cursor</h3>
+            <p class="team-position">外包人员</p>
             <p class="team-bio">
-              资深UI/UX设计师，专注科技产品的视觉设计，
-              擅长将复杂的技术概念转化为直观的用户界面。
+              AI辅助开发工具，提供智能代码生成和优化建议，
+              协助团队提高开发效率，专注于代码质量和性能优化，
+              为项目提供技术支持和解决方案。
             </p>
           </div>
         </div>
